@@ -371,6 +371,7 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
                                 Content ({activeTab.toUpperCase()})
                             </label>
                             <RichTextEditor
+                                key={activeTab}
                                 value={formData.translations[activeTab]?.content || ""}
                                 onChange={(value: string) =>
                                     handleTranslationChange("content", value)
