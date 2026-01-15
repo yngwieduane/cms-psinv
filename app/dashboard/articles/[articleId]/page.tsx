@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { doc, getDoc, setDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import { useRouter, useParams } from "next/navigation";
@@ -13,6 +13,7 @@ interface Translation {
 
 interface ArticleData {
     image: string;
+    slug: string; // [NEW] Slug field
     translations: {
         [key: string]: Translation;
     };
@@ -39,6 +40,7 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
 
     const [formData, setFormData] = useState<ArticleData>({
         image: "",
+        slug: "",
         translations: {
             en: { title: "", description: "" },
             ar: { title: "", description: "" },
@@ -95,26 +97,84 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
         }
     };
 
+    // Auto-generate slug from English title
+    const slugify = (text: string) => {
+        return text
+            .toString()
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')     // Replace spaces with -
+            .replace(/[^\w\-]+/g, '') // Remove all non-word chars
+            .replace(/\-\-+/g, '-');  // Replace multiple - with single -
+    };
+
     const handleTranslationChange = (
         field: keyof Translation,
         value: string
     ) => {
-        setFormData((prev) => ({
-            ...prev,
-            translations: {
-                ...prev.translations,
-                [activeTab]: {
-                    ...prev.translations[activeTab],
-                    [field]: value,
+        setFormData((prev) => {
+            const newState = {
+                ...prev,
+                translations: {
+                    ...prev.translations,
+                    [activeTab]: {
+                        ...prev.translations[activeTab],
+                        [field]: value,
+                    },
                 },
-            },
-        }));
+            };
+
+            // Auto-update slug if English title changes and slug is empty or was auto-generated
+            if (activeTab === 'en' && field === 'title') {
+                const currentSlugified = slugify(prev.translations.en.title);
+                const newSlug = slugify(value);
+
+                // If the slug field is strictly equal to the slugified English title (or empty), update it.
+                // This allows manual override: if user changes slug to custom, we stop auto-updating.
+                if (prev.slug === currentSlugified || prev.slug === "") {
+                    newState.slug = newSlug;
+                }
+            }
+
+            return newState;
+        });
+    };
+
+    const checkSlugUnique = async (slug: string) => {
+        // Query must be against a collection-indexed field. Ensure "slug" is indexed if using composite queries, but for simple equality it's fine.
+        const q = query(collection(db, "articles"), where("slug", "==", slug));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) return true;
+
+        // If found, check if it's the SAME article (for edits)
+        let isUnique = true;
+        querySnapshot.forEach((doc) => {
+            if (doc.id !== articleId) {
+                isUnique = false;
+            }
+        });
+        return isUnique;
     };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!formData.slug) {
+            alert("Slug is required");
+            return;
+        }
+
         setSaving(true);
         try {
+            // Check uniqueness
+            const isUnique = await checkSlugUnique(formData.slug);
+            if (!isUnique) {
+                alert("This slug is already taken. Please change the title or the slug manually.");
+                setSaving(false);
+                return;
+            }
+
             const articleData = {
                 ...formData,
                 updatedAt: serverTimestamp(),
@@ -156,10 +216,26 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
 
             <form onSubmit={handleSave} className="space-y-6">
                 {/* Shared Fields */}
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
                     <h2 className="text-lg font-medium text-gray-900 mb-4">
                         General Information
                     </h2>
+
+                    {/* Slug Field */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Slug (Unique URL Identifier)
+                        </label>
+                        <input
+                            type="text"
+                            required
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 font-mono bg-gray-50"
+                            value={formData.slug}
+                            onChange={(e) => setFormData({ ...formData, slug: slugify(e.target.value) })}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">Auto-generated from English title. Must be unique.</p>
+                    </div>
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700">
                             Article Image
@@ -219,7 +295,7 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
                             </label>
                             <input
                                 type="text"
-                                required={activeTab === "en"}
+                                required={activeTab === "en"} // Require English title broadly? Or handled by validation logic.
                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
                                 value={formData.translations[activeTab]?.title || ""}
                                 onChange={(e) => handleTranslationChange("title", e.target.value)}
