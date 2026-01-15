@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { doc, getDoc, setDoc, collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, addDoc, deleteDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import { useRouter, useParams } from "next/navigation";
@@ -201,13 +201,21 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
             };
 
             if (isNew) {
-                await addDoc(collection(db, "articles"), {
+                // Use slug as Document ID for new articles
+                await setDoc(doc(db, "articles", formData.slug), {
                     ...articleData,
                     createdAt: serverTimestamp(),
-                    status: "published", // default status
+                    status: "published",
                 });
             } else {
-                await setDoc(doc(db, "articles", articleId), articleData, { merge: true });
+                if (articleId !== formData.slug) {
+                    // Slug changed: create new doc, delete old
+                    await setDoc(doc(db, "articles", formData.slug), articleData);
+                    await deleteDoc(doc(db, "articles", articleId));
+                } else {
+                    // Slug same: update existing
+                    await setDoc(doc(db, "articles", articleId), articleData, { merge: true });
+                }
             }
             router.push("/dashboard/articles");
         } catch (error) {

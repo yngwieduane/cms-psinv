@@ -5,22 +5,20 @@ import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Link from "next/link";
 
-interface Article {
-    id: string;
-    category?: string; // [NEW]
-    translations: {
-        en?: { title: string };
-    };
-    status: string;
-    createdAt: any;
+interface BlogPost {
+    id: string; // Document ID (which is the slug)
+    title: string;
+    author: string;
+    date: string;
+    // other fields unnecessary for list view
 }
 
 import Pagination from "@/components/dashboard/Pagination";
 
 // ... existing imports
 
-export default function ArticleListPage() {
-    const [articles, setArticles] = useState<Article[]>([]);
+export default function BlogListPage() {
+    const [posts, setPosts] = useState<BlogPost[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Pagination State
@@ -29,49 +27,55 @@ export default function ArticleListPage() {
     const ITEMS_PER_PAGE = 10;
 
     useEffect(() => {
-        fetchArticles();
+        fetchPosts();
     }, []);
 
     // ... (fetch and delete logic same)
 
-    const fetchArticles = async () => {
+    const fetchPosts = async () => {
         try {
-            const querySnapshot = await getDocs(collection(db, "articles"));
-            const articleData: Article[] = [];
+            const querySnapshot = await getDocs(collection(db, "blog_posts"));
+            const postData: BlogPost[] = [];
             querySnapshot.forEach((doc) => {
-                articleData.push({ id: doc.id, ...doc.data() } as Article);
+                const data = doc.data();
+                postData.push({
+                    id: doc.id,
+                    title: data.title,
+                    author: data.author,
+                    date: data.date
+                } as BlogPost);
             });
-            setArticles(articleData);
+            setPosts(postData);
         } catch (error) {
-            console.error("Error fetching articles:", error);
+            console.error("Error fetching blog posts:", error);
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (confirm("Are you sure you want to delete this article?")) {
+        if (confirm("Are you sure you want to delete this post?")) {
             try {
-                await deleteDoc(doc(db, "articles", id));
-                fetchArticles(); // Refresh list
+                await deleteDoc(doc(db, "blog_posts", id));
+                fetchPosts();
             } catch (error) {
-                console.error("Error deleting article:", error);
+                console.error("Error deleting post:", error);
             }
         }
     };
 
     // Filter Logic
-    const filteredArticles = articles.filter(article => {
+    const filteredPosts = posts.filter(post => {
         const query = searchQuery.toLowerCase();
-        const titleMatch = article.translations?.en?.title?.toLowerCase().includes(query);
-        const categoryMatch = article.category?.toLowerCase().includes(query);
-        return titleMatch || categoryMatch;
+        const titleMatch = post.title?.toLowerCase().includes(query);
+        const authorMatch = post.author?.toLowerCase().includes(query);
+        return titleMatch || authorMatch;
     });
 
-    // Pagination Logic
-    const totalPages = Math.ceil(filteredArticles.length / ITEMS_PER_PAGE);
+    // Pagination Logic (using filtered posts)
+    const totalPages = Math.ceil(filteredPosts.length / ITEMS_PER_PAGE);
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const currentArticles = filteredArticles.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    const currentPosts = filteredPosts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
@@ -82,17 +86,17 @@ export default function ArticleListPage() {
         setCurrentPage(1);
     }, [searchQuery]);
 
-    if (loading) return <div className="p-6">Loading articles...</div>;
+    if (loading) return <div className="p-6">Loading blog posts...</div>;
 
     return (
         <div className="p-6">
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Articles</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Blog Posts</h1>
                 <Link
-                    href="/dashboard/articles/new"
+                    href="/dashboard/blog/new"
                     className="px-4 py-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
                 >
-                    Create New Article
+                    Create New Post
                 </Link>
             </div>
 
@@ -107,7 +111,7 @@ export default function ArticleListPage() {
                     <input
                         type="text"
                         className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
-                        placeholder="Search by title or category"
+                        placeholder="Search by title or author"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -120,13 +124,13 @@ export default function ArticleListPage() {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Title (EN)
+                                    Title
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Category
+                                    Author
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Status
+                                    Date
                                 </th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Actions
@@ -134,39 +138,39 @@ export default function ArticleListPage() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {currentArticles.length === 0 ? (
+                            {currentPosts.length === 0 ? (
                                 <tr>
                                     <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
-                                        No articles found matching your search.
+                                        No blog posts found matching your search.
                                     </td>
                                 </tr>
                             ) : (
-                                currentArticles.map((article) => (
-                                    <tr key={article.id} className="hover:bg-gray-50">
+                                currentPosts.map((post) => (
+                                    <tr key={post.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm font-medium text-gray-900">
-                                                {article.translations?.en?.title || "Untitled"}
+                                                {post.title || "Untitled"}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-500">
-                                                {article.category || "-"}
+                                                {post.author || "-"}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                {article.status || "Published"}
-                                            </span>
+                                            <div className="text-sm text-gray-500">
+                                                {post.date || "-"}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <Link
-                                                href={`/dashboard/articles/${article.id}`}
+                                                href={`/dashboard/blog/${post.id}`}
                                                 className="text-indigo-600 hover:text-indigo-900 mr-4"
                                             >
                                                 Edit
                                             </Link>
                                             <button
-                                                onClick={() => handleDelete(article.id)}
+                                                onClick={() => handleDelete(post.id)}
                                                 className="text-red-600 hover:text-red-900"
                                             >
                                                 Delete
@@ -178,7 +182,7 @@ export default function ArticleListPage() {
                         </tbody>
                     </table>
                 </div>
-                {filteredArticles.length > 0 && (
+                {filteredPosts.length > 0 && (
                     <Pagination
                         currentPage={currentPage}
                         totalPages={totalPages}
