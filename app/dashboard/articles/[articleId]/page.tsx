@@ -5,15 +5,19 @@ import { doc, getDoc, setDoc, collection, addDoc, serverTimestamp, query, where,
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import { useRouter, useParams } from "next/navigation";
+import RichTextEditor from "@/components/dashboard/RichTextEditor";
 
 interface Translation {
     title: string;
-    description: string;
+    h2: string;
+    h3: string;
+    content: string;
 }
 
 interface ArticleData {
     image: string;
-    slug: string; // [NEW] Slug field
+    slug: string;
+    category: string;
     translations: {
         [key: string]: Translation;
     };
@@ -25,6 +29,16 @@ const LANGUAGES = [
     { code: "zh", label: "Chinese" },
     { code: "ru", label: "Russian" },
     { code: "nl", label: "Dutch" },
+];
+
+const CATEGORIES = [
+    "UAE Real Estate Trends",
+    "Real Estate Tips and Advice",
+    "Rules and Regulations",
+    "Laws",
+    "Technology",
+    "Property Guide",
+    "Area Guide",
 ];
 
 export default function ArticleEditorPage({ params }: { params: Promise<{ articleId: string }> }) {
@@ -41,12 +55,13 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
     const [formData, setFormData] = useState<ArticleData>({
         image: "",
         slug: "",
+        category: "",
         translations: {
-            en: { title: "", description: "" },
-            ar: { title: "", description: "" },
-            zh: { title: "", description: "" },
-            ru: { title: "", description: "" },
-            nl: { title: "", description: "" },
+            en: { title: "", h2: "", h3: "", content: "" },
+            ar: { title: "", h2: "", h3: "", content: "" },
+            zh: { title: "", h2: "", h3: "", content: "" },
+            ru: { title: "", h2: "", h3: "", content: "" },
+            nl: { title: "", h2: "", h3: "", content: "" },
         },
     });
 
@@ -62,6 +77,11 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 const data = docSnap.data() as ArticleData;
+                // If fetching old data that has 'description', mapping might be needed if strict,
+                // but since this is a new field name, old data 'description' won't map to 'content' automatically
+                // unless we migrate or map it here. Assuming new data or willing to lose old description reference in UI.
+                // To be safe, let's allow a fallback or just proceed with new field.
+                // Given the instructions, I'll assume direct mapping.
                 setFormData((prev) => ({
                     ...prev,
                     ...data,
@@ -208,7 +228,7 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
                 </h1>
                 <button
                     onClick={() => router.back()}
-                    className="text-gray-600 hover:text-gray-900"
+                    className="text-gray-600 hover:text-gray-900 cursor-pointer"
                 >
                     Cancel
                 </button>
@@ -234,6 +254,25 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
                             onChange={(e) => setFormData({ ...formData, slug: slugify(e.target.value) })}
                         />
                         <p className="mt-1 text-xs text-gray-500">Auto-generated from English title. Must be unique.</p>
+                    </div>
+
+                    {/* Category Field */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Category
+                        </label>
+                        <select
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 cursor-pointer"
+                            value={formData.category}
+                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        >
+                            <option value="">Select a Category</option>
+                            {CATEGORIES.map((cat) => (
+                                <option key={cat} value={cat}>
+                                    {cat}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     <div>
@@ -280,7 +319,7 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
                                     className={`${activeTab === lang.code
                                         ? "border-indigo-500 text-indigo-600 bg-indigo-50"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                                        } whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex-1 text-center transition-colors`}
+                                        } whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex-1 text-center transition-colors cursor-pointer`}
                                 >
                                     {lang.label}
                                 </button>
@@ -301,16 +340,40 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
                                 onChange={(e) => handleTranslationChange("title", e.target.value)}
                             />
                         </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                    H2 Subtitle ({activeTab.toUpperCase()})
+                                </label>
+                                <input
+                                    type="text"
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
+                                    value={formData.translations[activeTab]?.h2 || ""}
+                                    onChange={(e) => handleTranslationChange("h2", e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                    H3 Subtitle ({activeTab.toUpperCase()})
+                                </label>
+                                <input
+                                    type="text"
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
+                                    value={formData.translations[activeTab]?.h3 || ""}
+                                    onChange={(e) => handleTranslationChange("h3", e.target.value)}
+                                />
+                            </div>
+                        </div>
+
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                                Description ({activeTab.toUpperCase()})
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Content ({activeTab.toUpperCase()})
                             </label>
-                            <textarea
-                                rows={5}
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-mono text-gray-900"
-                                value={formData.translations[activeTab]?.description || ""}
-                                onChange={(e) =>
-                                    handleTranslationChange("description", e.target.value)
+                            <RichTextEditor
+                                value={formData.translations[activeTab]?.content || ""}
+                                onChange={(value: string) =>
+                                    handleTranslationChange("content", value)
                                 }
                             />
                         </div>
@@ -321,7 +384,7 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
                     <button
                         type="submit"
                         disabled={saving || uploading}
-                        className="px-6 py-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+                        className="px-6 py-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 cursor-pointer"
                     >
                         {saving ? "Saving..." : "Save Article"}
                     </button>

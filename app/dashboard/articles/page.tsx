@@ -7,6 +7,7 @@ import Link from "next/link";
 
 interface Article {
     id: string;
+    category?: string; // [NEW]
     translations: {
         en?: { title: string };
     };
@@ -70,6 +71,9 @@ export default function ArticleListPage() {
                                 Title (EN)
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Category
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Status
                             </th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -80,7 +84,7 @@ export default function ArticleListPage() {
                     <tbody className="bg-white divide-y divide-gray-200">
                         {articles.length === 0 ? (
                             <tr>
-                                <td colSpan={3} className="px-6 py-4 text-center text-gray-500">
+                                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
                                     No articles found. Create one to get started.
                                 </td>
                             </tr>
@@ -90,6 +94,11 @@ export default function ArticleListPage() {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm font-medium text-gray-900">
                                             {article.translations?.en?.title || "Untitled"}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-gray-500">
+                                            {article.category || "-"}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
