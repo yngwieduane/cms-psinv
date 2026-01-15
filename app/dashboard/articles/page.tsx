@@ -26,6 +26,13 @@ export default function ArticleListPage() {
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
+
+    // Sort State
+    const [sortConfig, setSortConfig] = useState<{ key: keyof Article | 'title' | 'date'; direction: 'asc' | 'desc' }>({
+        key: 'date',
+        direction: 'desc',
+    });
+
     const ITEMS_PER_PAGE = 10;
 
     useEffect(() => {
@@ -60,18 +67,68 @@ export default function ArticleListPage() {
         }
     };
 
-    // Filter Logic
-    const filteredArticles = articles.filter(article => {
+    // Sort Handler
+    const requestSort = (key: keyof Article | 'title' | 'date') => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    // Filter & Sort Logic
+    let processedArticles = [...articles];
+
+    // 1. Filter
+    processedArticles = processedArticles.filter(article => {
         const query = searchQuery.toLowerCase();
         const titleMatch = article.translations?.en?.title?.toLowerCase().includes(query);
         const categoryMatch = article.category?.toLowerCase().includes(query);
         return titleMatch || categoryMatch;
     });
 
+    // 2. Sort
+    processedArticles.sort((a, b) => {
+        const { key, direction } = sortConfig;
+        let valueA: any = '';
+        let valueB: any = '';
+
+        if (key === 'title') {
+            valueA = a.translations?.en?.title || '';
+            valueB = b.translations?.en?.title || '';
+        } else if (key === 'category') {
+            valueA = a.category || '';
+            valueB = b.category || '';
+        } else if (key === 'status') {
+            valueA = a.status || '';
+            valueB = b.status || '';
+        } else if (key === 'date') { // createdAt
+            // Handle Firestore Timestamp or Date object or null
+            const dateA = a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(0);
+            const dateB = b.createdAt?.seconds ? new Date(b.createdAt.seconds * 1000) : new Date(0);
+            valueA = dateA.getTime();
+            valueB = dateB.getTime();
+        }
+
+        if (typeof valueA === 'string') {
+            valueA = valueA.toLowerCase();
+            valueB = valueB.toLowerCase();
+        }
+
+        if (valueA < valueB) {
+            return direction === 'asc' ? -1 : 1;
+        }
+        if (valueA > valueB) {
+            return direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+    });
+
+
     // Pagination Logic
-    const totalPages = Math.ceil(filteredArticles.length / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(processedArticles.length / ITEMS_PER_PAGE);
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const currentArticles = filteredArticles.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    const currentArticles = processedArticles.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
@@ -81,6 +138,20 @@ export default function ArticleListPage() {
     useEffect(() => {
         setCurrentPage(1);
     }, [searchQuery]);
+
+    // Helper for Sort Icon
+    const getSortIcon = (itemName: string) => {
+        if (sortConfig.key !== itemName) {
+            return (
+                <svg className="w-3 h-3 ml-1 text-gray-400 opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
+            );
+        }
+        return sortConfig.direction === 'asc' ? (
+            <svg className="w-3 h-3 ml-1 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
+        ) : (
+            <svg className="w-3 h-3 ml-1 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+        );
+    };
 
     if (loading) return <div className="p-6">Loading articles...</div>;
 
@@ -119,14 +190,32 @@ export default function ArticleListPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Title (EN)
+                                <th
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100"
+                                    onClick={() => requestSort('title')}
+                                >
+                                    <div className="flex items-center">
+                                        Title (EN)
+                                        {getSortIcon('title')}
+                                    </div>
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Category
+                                <th
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100"
+                                    onClick={() => requestSort('category')}
+                                >
+                                    <div className="flex items-center">
+                                        Category
+                                        {getSortIcon('category')}
+                                    </div>
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Status
+                                <th
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100"
+                                    onClick={() => requestSort('status')}
+                                >
+                                    <div className="flex items-center">
+                                        Status
+                                        {getSortIcon('status')}
+                                    </div>
                                 </th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Actions
@@ -146,6 +235,9 @@ export default function ArticleListPage() {
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm font-medium text-gray-900">
                                                 {article.translations?.en?.title || "Untitled"}
+                                            </div>
+                                            <div className="text-xs text-gray-400">
+                                                {article.createdAt?.seconds ? new Date(article.createdAt.seconds * 1000).toLocaleDateString() : 'No date'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -178,7 +270,7 @@ export default function ArticleListPage() {
                         </tbody>
                     </table>
                 </div>
-                {filteredArticles.length > 0 && (
+                {processedArticles.length > 0 && (
                     <Pagination
                         currentPage={currentPage}
                         totalPages={totalPages}

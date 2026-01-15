@@ -24,13 +24,18 @@ export default function BlogListPage() {
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
+
+    // Sort State
+    const [sortConfig, setSortConfig] = useState<{ key: keyof BlogPost; direction: 'asc' | 'desc' }>({
+        key: 'date',
+        direction: 'desc',
+    });
+
     const ITEMS_PER_PAGE = 10;
 
     useEffect(() => {
         fetchPosts();
     }, []);
-
-    // ... (fetch and delete logic same)
 
     const fetchPosts = async () => {
         try {
@@ -64,18 +69,55 @@ export default function BlogListPage() {
         }
     };
 
-    // Filter Logic
-    const filteredPosts = posts.filter(post => {
+    // Sort Handler
+    const requestSort = (key: keyof BlogPost) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    // Filter & Sort Logic
+    let processedPosts = [...posts];
+
+    // 1. Filter
+    processedPosts = processedPosts.filter(post => {
         const query = searchQuery.toLowerCase();
         const titleMatch = post.title?.toLowerCase().includes(query);
         const authorMatch = post.author?.toLowerCase().includes(query);
         return titleMatch || authorMatch;
     });
 
-    // Pagination Logic (using filtered posts)
-    const totalPages = Math.ceil(filteredPosts.length / ITEMS_PER_PAGE);
+    // 2. Sort
+    processedPosts.sort((a, b) => {
+        const { key, direction } = sortConfig;
+        let valueA: any = a[key] || '';
+        let valueB: any = b[key] || '';
+
+        if (key === 'date') {
+            const dateA = new Date(valueA);
+            const dateB = new Date(valueB);
+            valueA = dateA.getTime();
+            valueB = dateB.getTime();
+        } else if (typeof valueA === 'string') {
+            valueA = valueA.toLowerCase();
+            valueB = valueB.toLowerCase();
+        }
+
+        if (valueA < valueB) {
+            return direction === 'asc' ? -1 : 1;
+        }
+        if (valueA > valueB) {
+            return direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+    });
+
+    // Pagination Logic
+    const totalPages = Math.ceil(processedPosts.length / ITEMS_PER_PAGE);
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const currentPosts = filteredPosts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    const currentPosts = processedPosts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
@@ -85,6 +127,20 @@ export default function BlogListPage() {
     useEffect(() => {
         setCurrentPage(1);
     }, [searchQuery]);
+
+    // Helper for Sort Icon
+    const getSortIcon = (itemName: string) => {
+        if (sortConfig.key !== itemName) {
+            return (
+                <svg className="w-3 h-3 ml-1 text-gray-400 opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
+            );
+        }
+        return sortConfig.direction === 'asc' ? (
+            <svg className="w-3 h-3 ml-1 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
+        ) : (
+            <svg className="w-3 h-3 ml-1 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+        );
+    };
 
     if (loading) return <div className="p-6">Loading blog posts...</div>;
 
@@ -123,14 +179,32 @@ export default function BlogListPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Title
+                                <th
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100"
+                                    onClick={() => requestSort('title')}
+                                >
+                                    <div className="flex items-center">
+                                        Title
+                                        {getSortIcon('title')}
+                                    </div>
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Author
+                                <th
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100"
+                                    onClick={() => requestSort('author')}
+                                >
+                                    <div className="flex items-center">
+                                        Author
+                                        {getSortIcon('author')}
+                                    </div>
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Date
+                                <th
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100"
+                                    onClick={() => requestSort('date')}
+                                >
+                                    <div className="flex items-center">
+                                        Date
+                                        {getSortIcon('date')}
+                                    </div>
                                 </th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Actions
@@ -182,7 +256,7 @@ export default function BlogListPage() {
                         </tbody>
                     </table>
                 </div>
-                {filteredPosts.length > 0 && (
+                {processedPosts.length > 0 && (
                     <Pagination
                         currentPage={currentPage}
                         totalPages={totalPages}
