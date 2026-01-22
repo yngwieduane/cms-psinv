@@ -18,6 +18,7 @@ interface ArticleData {
     image: string;
     slug: string;
     category: string;
+    city?: string;
     translations: {
         [key: string]: Translation;
     };
@@ -41,6 +42,15 @@ const CATEGORIES = [
     "Area Guide",
 ];
 
+const CITIES = [
+    "Abu Dhabi",
+    "Dubai",
+    "Sharjah",
+    "Ras Al Khaimah",
+    "Al Ain",
+    "Umm Al Quwain",
+];
+
 export default function ArticleEditorPage({ params }: { params: Promise<{ articleId: string }> }) {
     const routeParams = useParams();
     const articleId = routeParams.articleId as string;
@@ -56,6 +66,7 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
         image: "",
         slug: "",
         category: "",
+        city: "",
         translations: {
             en: { title: "", h2: "", h3: "", content: "" },
             ar: { title: "", h2: "", h3: "", content: "" },
@@ -282,6 +293,27 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
                             ))}
                         </select>
                     </div>
+
+                    {/* City Field (Conditional) */}
+                    {formData.category === "Area Guide" && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                                City
+                            </label>
+                            <select
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 cursor-pointer"
+                                value={formData.city || ""}
+                                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                            >
+                                <option value="">Select a City</option>
+                                {CITIES.map((city) => (
+                                    <option key={city} value={city}>
+                                        {city}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700">
