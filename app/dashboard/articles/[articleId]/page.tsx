@@ -16,6 +16,8 @@ interface Translation {
 
 interface ArticleData {
     image: string;
+    gallery?: string[];
+    youtubeUrl?: string; // e.g. https://www.youtube.com/embed/... or full watch link (we might want to parse it, but for now just storing)
     slug: string;
     category: string;
     city?: string;
@@ -64,6 +66,8 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
 
     const [formData, setFormData] = useState<ArticleData>({
         image: "",
+        gallery: [],
+        youtubeUrl: "",
         slug: "",
         category: "",
         city: "",
@@ -96,6 +100,9 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
                 setFormData((prev) => ({
                     ...prev,
                     ...data,
+                    // Ensure arrays are initialized if missing in DB
+                    gallery: data.gallery || [],
+                    youtubeUrl: data.youtubeUrl || "",
                     translations: { ...prev.translations, ...data.translations },
                 }));
             } else {
@@ -126,6 +133,39 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
         } finally {
             setUploading(false);
         }
+    };
+
+    const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        setUploading(true);
+        try {
+            const uploadPromises = Array.from(files).map(async (file) => {
+                const storageRef = ref(storage, `articles/gallery/${Date.now()}_${file.name}`);
+                const snapshot = await uploadBytes(storageRef, file);
+                return getDownloadURL(snapshot.ref);
+            });
+
+            const downloadURLs = await Promise.all(uploadPromises);
+
+            setFormData(prev => ({
+                ...prev,
+                gallery: [...(prev.gallery || []), ...downloadURLs]
+            }));
+        } catch (error) {
+            console.error("Error uploading gallery images:", error);
+            alert("Failed to upload images.");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const removeGalleryImage = (indexToRemove: number) => {
+        setFormData(prev => ({
+            ...prev,
+            gallery: prev.gallery?.filter((_, index) => index !== indexToRemove)
+        }));
     };
 
     // Auto-generate slug from English title
@@ -343,6 +383,65 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
                                 />
                                 {uploading && <p className="text-sm text-indigo-600 mt-1">Uploading...</p>}
                             </div>
+                        </div>
+                    </div>
+
+                    {/* YouTube URL */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            YouTube URL
+                        </label>
+                        <input
+                            type="text"
+                            placeholder="https://www.youtube.com/watch?v=..."
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
+                            value={formData.youtubeUrl || ""}
+                            onChange={(e) => setFormData({ ...formData, youtubeUrl: e.target.value })}
+                        />
+                    </div>
+
+                    {/* Gallery Images */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Image Gallery
+                        </label>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                            {formData.gallery?.map((imgUrl, index) => (
+                                <div key={index} className="relative group">
+                                    <img
+                                        src={imgUrl}
+                                        alt={`Gallery ${index}`}
+                                        className="h-24 w-full object-cover rounded-lg border border-gray-200"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => removeGalleryImage(index)}
+                                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Remove Image"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                        <div>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                className="block w-full text-sm text-gray-900
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-full file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-indigo-50 file:text-indigo-700
+                                  hover:file:bg-indigo-100
+                                "
+                                onChange={handleGalleryUpload}
+                                disabled={uploading}
+                            />
+                            <p className="mt-1 text-xs text-gray-500">Select multiple images to add to the gallery.</p>
                         </div>
                     </div>
                 </div>
