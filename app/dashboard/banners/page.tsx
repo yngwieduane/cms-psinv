@@ -192,11 +192,11 @@ export default function BannerListPage() {
 
                 {/* Data Table */}
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse table-fixed min-w-[800px]">
                         <thead>
                             <tr className="border-b border-[#2d2d30]">
                                 <th
-                                    className="px-6 py-4 text-[11px] font-bold text-gray-500 tracking-wider cursor-pointer group hover:text-gray-400 transition-colors"
+                                    className="w-[25%] px-6 py-4 text-[11px] font-bold text-gray-500 tracking-wider cursor-pointer group hover:text-gray-400 transition-colors"
                                     onClick={() => requestSort('title')}
                                 >
                                     <div className="flex items-center">
@@ -204,7 +204,7 @@ export default function BannerListPage() {
                                     </div>
                                 </th>
                                 <th
-                                    className="px-6 py-4 text-[11px] font-bold text-gray-500 tracking-wider cursor-pointer group hover:text-gray-400 transition-colors"
+                                    className="w-[30%] px-6 py-4 text-[11px] font-bold text-gray-500 tracking-wider cursor-pointer group hover:text-gray-400 transition-colors"
                                     onClick={() => requestSort('subTitle')}
                                 >
                                     <div className="flex items-center">
@@ -212,7 +212,7 @@ export default function BannerListPage() {
                                     </div>
                                 </th>
                                 <th
-                                    className="px-6 py-4 text-[11px] font-bold text-gray-500 tracking-wider cursor-pointer group hover:text-gray-400 transition-colors"
+                                    className="w-[15%] px-6 py-4 text-[11px] font-bold text-gray-500 tracking-wider cursor-pointer group hover:text-gray-400 transition-colors"
                                     onClick={() => requestSort('featured')}
                                 >
                                     <div className="flex items-center">
@@ -220,14 +220,14 @@ export default function BannerListPage() {
                                     </div>
                                 </th>
                                 <th
-                                    className="px-6 py-4 text-[11px] font-bold text-gray-500 tracking-wider cursor-pointer group hover:text-gray-400 transition-colors"
+                                    className="w-[15%] px-6 py-4 text-[11px] font-bold text-gray-500 tracking-wider cursor-pointer group hover:text-gray-400 transition-colors"
                                     onClick={() => requestSort('city')}
                                 >
                                     <div className="flex items-center">
                                         CITY {getSortIcon('city')}
                                     </div>
                                 </th>
-                                <th className="px-6 py-4 text-[11px] font-bold text-gray-500 tracking-wider text-right">
+                                <th className="w-[15%] px-6 py-4 text-[11px] font-bold text-gray-500 tracking-wider text-right">
                                     ACTIONS
                                 </th>
                             </tr>
@@ -242,13 +242,21 @@ export default function BannerListPage() {
                             ) : (
                                 currentItems.map((item) => (
                                     <tr key={item.id} className="hover:bg-[#28282c] transition-colors group">
-                                        <td className="px-6 py-5 whitespace-nowrap">
-                                            <div className="text-[14px] font-semibold text-gray-200">
+                                        <td className="px-6 py-5 whitespace-nowrap overflow-hidden">
+                                            <div
+                                                className="text-[14px] font-semibold text-gray-200 truncate w-full pr-4"
+                                                title={item.title || "Untitled"}
+                                            >
                                                 {item.title || "Untitled"}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-5 whitespace-nowrap text-[14px] text-gray-400">
-                                            {item.subTitle || "—"}
+                                        <td className="px-6 py-5 whitespace-nowrap overflow-hidden">
+                                            <div
+                                                className="text-[14px] text-gray-400 truncate w-full pr-4"
+                                                title={item.subTitle || "—"}
+                                            >
+                                                {item.subTitle || "—"}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap">
                                             {item.featured ? (
