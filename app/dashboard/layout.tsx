@@ -14,6 +14,7 @@ export default function DashboardLayout({
 }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isCollapsed, setIsCollapsed] = useState(true);
     const router = useRouter();
 
     useEffect(() => {
@@ -49,10 +50,10 @@ export default function DashboardLayout({
     if (!user) return null;
 
     return (
-        <div className="min-h-screen bg-[#1c1c1f] text-gray-200 selection:bg-blue-500/30">
-            <Sidebar />
+        <div className="min-h-screen bg-[#1c1c1f] text-gray-200 selection:bg-blue-500/30 flex">
+            <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
 
-            <div className="md:pl-64 flex flex-col min-h-screen transition-all duration-300">
+            <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${isCollapsed ? 'md:pl-20' : 'md:pl-64'}`}>
                 <Header userEmail={user.email} onLogout={handleLogout} />
 
                 <main className="flex-1 px-8 py-10">

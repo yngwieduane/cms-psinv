@@ -17,7 +17,17 @@ interface BannerData {
     featured: boolean;
     landingPageUrl: string;
     iconUrl: string;
+    iconUrlMobile: string;
     city: string; // Add city field
+    propertyId?: string;
+    subCommunityId?: string;
+    communityId?: string;
+    districtId?: string;
+    cityId?: string;
+    stateId?: string;
+    countryId?: string;
+    unitType?: string;
+    bedroom?: string;
     createdAt?: any;
     updatedAt?: any;
 }
@@ -35,6 +45,7 @@ export default function BannerEditorPage() {
     const [uploadingImage, setUploadingImage] = useState(false);
     const [uploadingVideo, setUploadingVideo] = useState(false);
     const [uploadingIcon, setUploadingIcon] = useState(false);
+    const [uploadingIconMobile, setUploadingIconMobile] = useState(false);
 
     const [formData, setFormData] = useState<BannerData>({
         id: "",
@@ -46,7 +57,17 @@ export default function BannerEditorPage() {
         featured: false,
         landingPageUrl: "",
         iconUrl: "",
+        iconUrlMobile: "",
         city: "", // Initialize city
+        propertyId: "",
+        subCommunityId: "",
+        communityId: "",
+        districtId: "",
+        cityId: "",
+        stateId: "",
+        countryId: "",
+        unitType: "",
+        bedroom: "",
     });
 
     useEffect(() => {
@@ -78,7 +99,7 @@ export default function BannerEditorPage() {
 
     const handleMediaUpload = async (
         e: React.ChangeEvent<HTMLInputElement>,
-        type: 'image' | 'video' | 'icon',
+        type: 'image' | 'video' | 'icon' | 'iconMobile',
         folder: string
     ) => {
         const file = e.target.files?.[0];
@@ -88,6 +109,7 @@ export default function BannerEditorPage() {
         if (type === 'image') setUploadingImage(true);
         if (type === 'video') setUploadingVideo(true);
         if (type === 'icon') setUploadingIcon(true);
+        if (type === 'iconMobile') setUploadingIconMobile(true);
 
         try {
             const storageRef = ref(storage, `banners/${folder}/${Date.now()}_${file.name}`);
@@ -99,6 +121,7 @@ export default function BannerEditorPage() {
                 ...(type === 'image' && { imageBannerUrl: downloadURL }),
                 ...(type === 'video' && { videoBannerUrl: downloadURL }),
                 ...(type === 'icon' && { iconUrl: downloadURL }),
+                ...(type === 'iconMobile' && { iconUrlMobile: downloadURL }),
             }));
         } catch (error) {
             console.error(`Error uploading ${type}:`, error);
@@ -107,6 +130,7 @@ export default function BannerEditorPage() {
             if (type === 'image') setUploadingImage(false);
             if (type === 'video') setUploadingVideo(false);
             if (type === 'icon') setUploadingIcon(false);
+            if (type === 'iconMobile') setUploadingIconMobile(false);
         }
     };
 
@@ -184,7 +208,7 @@ export default function BannerEditorPage() {
     if (loading) return <div className="p-6 text-gray-400">Loading editor...</div>;
 
     const currentTitle = formData.title || (isNew ? "New Banner" : "Edit Banner");
-    const isUploadingAny = uploadingImage || uploadingVideo || uploadingIcon;
+    const isUploadingAny = uploadingImage || uploadingVideo || uploadingIcon || uploadingIconMobile;
 
     return (
         <form onSubmit={handleSave} className="p-6 max-w-6xl mx-auto space-y-8">
@@ -317,6 +341,104 @@ export default function BannerEditorPage() {
                             </div>
                         </div>
                     </div>
+
+                    {/* Integration Block */}
+                    <div className="bg-[#212124] border border-[#2d2d30] rounded-xl p-8 shadow-sm">
+                        <h2 className="text-xl font-bold text-white mb-8">Integration</h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Property ID</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                    value={formData.propertyId || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, propertyId: e.target.value }))}
+                                    placeholder="e.g. PROP-123"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Sub Community ID</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                    value={formData.subCommunityId || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, subCommunityId: e.target.value }))}
+                                    placeholder="Sub Comm ID"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Community ID</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                    value={formData.communityId || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, communityId: e.target.value }))}
+                                    placeholder="Comm ID"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">District ID</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                    value={formData.districtId || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, districtId: e.target.value }))}
+                                    placeholder="Dist ID"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">City ID</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                    value={formData.cityId || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, cityId: e.target.value }))}
+                                    placeholder="City ID"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">State ID</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                    value={formData.stateId || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, stateId: e.target.value }))}
+                                    placeholder="State ID"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Country ID</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                    value={formData.countryId || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, countryId: e.target.value }))}
+                                    placeholder="Country ID"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Unit Type</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                    value={formData.unitType || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, unitType: e.target.value }))}
+                                    placeholder="e.g. Apartment, Villa"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Bedroom</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                    value={formData.bedroom || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, bedroom: e.target.value }))}
+                                    placeholder="e.g. 2, 3+ Maid"
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Right Column: Media & Settings */}
@@ -429,6 +551,34 @@ export default function BannerEditorPage() {
                                         </label>
                                         {formData.iconUrl && (
                                             <button type="button" onClick={() => setFormData(prev => ({ ...prev, iconUrl: "" }))} className="text-xs text-red-400 hover:text-red-300 block w-full text-center">
+                                                Remove Icon
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Icon Mobile */}
+                            <div className="pt-6 border-t border-[#3e3e42]">
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-4">
+                                    Decorative Icon Mobile (SVG/PNG/WebP)
+                                </label>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 rounded-xl border border-[#3e3e42] bg-[#1c1c1f] flex items-center justify-center overflow-hidden">
+                                        {formData.iconUrlMobile ? (
+                                            <img src={formData.iconUrlMobile} alt="Icon Mobile" className="w-10 h-10 object-contain" />
+                                        ) : (
+                                            <div className="w-6 h-6 rounded-full border-2 border-[#3e3e42] border-dashed"></div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <label className="cursor-pointer flex items-center justify-center w-full px-4 py-2 bg-[#2d2d30] border border-[#3e3e42] rounded-lg text-sm font-medium text-gray-200 hover:bg-[#3e3e42] transition-colors relative overflow-hidden mb-2">
+                                            <span className={uploadingIconMobile ? 'opacity-0' : 'opacity-100 transition-opacity'}>Upload Mobile Icon</span>
+                                            {uploadingIconMobile && <span className="absolute text-[#3c64f4]">Wait...</span>}
+                                            <input type="file" accept="image/png,image/svg+xml,image/webp" className="hidden" onChange={(e) => handleMediaUpload(e, 'iconMobile', 'icons')} disabled={uploadingIconMobile} />
+                                        </label>
+                                        {formData.iconUrlMobile && (
+                                            <button type="button" onClick={() => setFormData(prev => ({ ...prev, iconUrlMobile: "" }))} className="text-xs text-red-400 hover:text-red-300 block w-full text-center">
                                                 Remove Icon
                                             </button>
                                         )}
