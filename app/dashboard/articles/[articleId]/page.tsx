@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { doc, getDoc, setDoc, collection, addDoc, deleteDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import { useRouter, useParams } from "next/navigation";
 import RichTextEditor from "@/components/dashboard/RichTextEditor";
+import { Eye, Save, RefreshCw, Link as LinkIcon, Languages, X } from "lucide-react";
 
 interface Translation {
     title: string;
@@ -17,7 +18,7 @@ interface Translation {
 interface ArticleData {
     image: string;
     gallery?: string[];
-    youtubeUrl?: string; // e.g. https://www.youtube.com/embed/... or full watch link (we might want to parse it, but for now just storing)
+    youtubeUrl?: string;
     slug: string;
     category: string;
     city?: string;
@@ -27,11 +28,11 @@ interface ArticleData {
 }
 
 const LANGUAGES = [
-    { code: "en", label: "English" },
-    { code: "ar", label: "Arabic" },
-    { code: "zh", label: "Chinese" },
-    { code: "ru", label: "Russian" },
-    { code: "nl", label: "Dutch" },
+    { code: "en", label: "English", flag: "🇬🇧" },
+    { code: "ar", label: "العربية", flag: "🇦🇪" },
+    { code: "zh", label: "中文", flag: "🇨🇳" },
+    { code: "ru", label: "Русский", flag: "🇷🇺" },
+    { code: "nl", label: "Dutch", flag: "🇳🇱" },
 ];
 
 const CATEGORIES = [
@@ -42,6 +43,7 @@ const CATEGORIES = [
     "Technology",
     "Property Guide",
     "Area Guide",
+    "News"
 ];
 
 const CITIES = [
@@ -53,7 +55,7 @@ const CITIES = [
     "Umm Al Quwain",
 ];
 
-export default function ArticleEditorPage({ params }: { params: Promise<{ articleId: string }> }) {
+export default function ArticleEditorPage() {
     const routeParams = useParams();
     const articleId = routeParams.articleId as string;
 
@@ -92,15 +94,9 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 const data = docSnap.data() as ArticleData;
-                // If fetching old data that has 'description', mapping might be needed if strict,
-                // but since this is a new field name, old data 'description' won't map to 'content' automatically
-                // unless we migrate or map it here. Assuming new data or willing to lose old description reference in UI.
-                // To be safe, let's allow a fallback or just proceed with new field.
-                // Given the instructions, I'll assume direct mapping.
                 setFormData((prev) => ({
                     ...prev,
                     ...data,
-                    // Ensure arrays are initialized if missing in DB
                     gallery: data.gallery || [],
                     youtubeUrl: data.youtubeUrl || "",
                     translations: { ...prev.translations, ...data.translations },
@@ -168,15 +164,14 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
         }));
     };
 
-    // Auto-generate slug from English title
     const slugify = (text: string) => {
         return text
             .toString()
             .toLowerCase()
             .trim()
-            .replace(/\s+/g, '-')     // Replace spaces with -
-            .replace(/[^\w\-]+/g, '') // Remove all non-word chars
-            .replace(/\-\-+/g, '-');  // Replace multiple - with single -
+            .replace(/\s+/g, '-')
+            .replace(/[^\w\-]+/g, '')
+            .replace(/\-\-+/g, '-');
     };
 
     const handleTranslationChange = (
@@ -195,13 +190,10 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
                 },
             };
 
-            // Auto-update slug if English title changes and slug is empty or was auto-generated
             if (activeTab === 'en' && field === 'title') {
                 const currentSlugified = slugify(prev.translations.en.title);
                 const newSlug = slugify(value);
 
-                // If the slug field is strictly equal to the slugified English title (or empty), update it.
-                // This allows manual override: if user changes slug to custom, we stop auto-updating.
                 if (prev.slug === currentSlugified || prev.slug === "") {
                     newState.slug = newSlug;
                 }
@@ -212,13 +204,11 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
     };
 
     const checkSlugUnique = async (slug: string) => {
-        // Query must be against a collection-indexed field. Ensure "slug" is indexed if using composite queries, but for simple equality it's fine.
         const q = query(collection(db, "articles"), where("slug", "==", slug));
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) return true;
 
-        // If found, check if it's the SAME article (for edits)
         let isUnique = true;
         querySnapshot.forEach((doc) => {
             if (doc.id !== articleId) {
@@ -238,7 +228,6 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
 
         setSaving(true);
         try {
-            // Check uniqueness
             const isUnique = await checkSlugUnique(formData.slug);
             if (!isUnique) {
                 alert("This slug is already taken. Please change the title or the slug manually.");
@@ -252,19 +241,16 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
             };
 
             if (isNew) {
-                // Use slug as Document ID for new articles
                 await setDoc(doc(db, "articles", formData.slug), {
                     ...articleData,
                     createdAt: serverTimestamp(),
-                    status: "published",
+                    status: "draft",
                 });
             } else {
                 if (articleId !== formData.slug) {
-                    // Slug changed: create new doc, delete old
                     await setDoc(doc(db, "articles", formData.slug), articleData);
                     await deleteDoc(doc(db, "articles", articleId));
                 } else {
-                    // Slug same: update existing
                     await setDoc(doc(db, "articles", articleId), articleData, { merge: true });
                 }
             }
@@ -277,259 +263,294 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ articl
         }
     };
 
-    if (loading) return <div className="p-6">Loading editor...</div>;
+    if (loading) return <div className="p-6 text-gray-400">Loading editor...</div>;
+
+    const currentTitle = formData.translations.en.title || (isNew ? "New Article" : "Edit Article");
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">
-                    {isNew ? "Create Article" : "Edit Article"}
-                </h1>
-                <button
-                    onClick={() => router.back()}
-                    className="text-gray-600 hover:text-gray-900 cursor-pointer"
-                >
-                    Cancel
-                </button>
+        <form onSubmit={handleSave} className="p-6 max-w-6xl mx-auto space-y-8">
+            {/* Header Area */}
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-[13px] font-medium text-[#10b981]">
+                        <div className="w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                        Connected
+                    </div>
+                    <h1 className="text-[28px] font-bold text-white tracking-tight">
+                        {currentTitle}
+                    </h1>
+                </div>
+
+                <div className="flex items-center gap-3 pt-6 md:pt-0">
+                    <button
+                        type="button"
+                        onClick={() => router.back()}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#3e3e42] text-gray-300 bg-[#2d2d30]/50 hover:bg-[#3e3e42] transition-colors text-sm font-medium"
+                    >
+                        Cancel
+                    </button>
+                    <a
+                        href={formData.slug && formData.category ? `https://www.psinv.net/en/articles/${slugify(formData.category)}${slugify(formData.category) === 'area-guide' && formData.city ? `/${slugify(formData.city)}` : ""}/${formData.slug}` : "#"}
+                        target={formData.slug && formData.category ? "_blank" : "_self"}
+                        rel="noopener noreferrer"
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg border border-[#3c64f4] text-[#3c64f4] transition-colors text-sm font-medium ${!(formData.slug && formData.category)
+                                ? 'opacity-50 cursor-not-allowed'
+                                : 'hover:bg-[#3c64f4]/10'
+                            }`}
+                        onClick={(e) => {
+                            if (!(formData.slug && formData.category)) {
+                                e.preventDefault();
+                            }
+                        }}
+                    >
+                        <Eye className="w-4 h-4" />
+                        Preview
+                    </a>
+                    <button
+                        type="submit"
+                        disabled={saving || uploading}
+                        className="flex items-center gap-2 px-6 py-2 rounded-lg bg-[#3c64f4] text-white hover:bg-[#2b4ac0] transition-colors disabled:opacity-50 text-sm font-medium shadow-[0_0_15px_rgba(60,100,244,0.3)]"
+                    >
+                        <Save className="w-4 h-4" />
+                        {saving ? "Saving..." : "Save"}
+                    </button>
+                </div>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-6">
-                {/* Shared Fields */}
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
-                    <h2 className="text-lg font-medium text-gray-900 mb-4">
-                        General Information
-                    </h2>
+            {/* Language Tabs */}
+            <div className="bg-[#212124] border border-[#2d2d30] rounded-xl flex items-center overflow-x-auto p-1.5">
+                {LANGUAGES.map((lang) => (
+                    <button
+                        key={lang.code}
+                        type="button"
+                        onClick={() => setActiveTab(lang.code)}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 text-sm font-medium rounded-lg transition-colors ${activeTab === lang.code
+                            ? "text-white bg-[#2d2d30] shadow-sm border border-[#3e3e42]"
+                            : "text-gray-400 hover:text-gray-300 hover:bg-[#2d2d30]/50 border border-transparent"
+                            }`}
+                    >
+                        <span>{lang.flag} {lang.label}</span>
+                        <div className={`w-1.5 h-1.5 rounded-full ${formData.translations[lang.code]?.title ? 'bg-[#10b981]' : 'bg-gray-600'}`}></div>
+                    </button>
+                ))}
+            </div>
 
-                    {/* Slug Field */}
+            {/* Translation Specific Content */}
+            <div className="bg-[#212124] border border-[#2d2d30] rounded-xl p-8 shadow-sm">
+                <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        {LANGUAGES.find(l => l.code === activeTab)?.flag} Content ({activeTab.toUpperCase()})
+                    </h2>
+                </div>
+
+                <div className="space-y-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                            Slug (Unique URL Identifier)
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                            Title
                         </label>
                         <input
                             type="text"
-                            required
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 font-mono bg-gray-50"
-                            value={formData.slug}
-                            onChange={(e) => setFormData({ ...formData, slug: slugify(e.target.value) })}
+                            required={activeTab === "en"}
+                            className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                            value={formData.translations[activeTab]?.title || ""}
+                            onChange={(e) => handleTranslationChange("title", e.target.value)}
+                            placeholder="e.g. The Future of Real Estate"
                         />
-                        <p className="mt-1 text-xs text-gray-500">Auto-generated from English title. Must be unique.</p>
                     </div>
 
-                    {/* Category Field */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                            Category
-                        </label>
-                        <select
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 cursor-pointer"
-                            value={formData.category}
-                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        >
-                            <option value="">Select a Category</option>
-                            {CATEGORIES.map((cat) => (
-                                <option key={cat} value={cat}>
-                                    {cat}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* City Field (Conditional) */}
-                    {formData.category === "Area Guide" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                                City
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                H2 Subtitle
+                            </label>
+                            <input
+                                type="text"
+                                className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                value={formData.translations[activeTab]?.h2 || ""}
+                                onChange={(e) => handleTranslationChange("h2", e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                H3 Subtitle
+                            </label>
+                            <input
+                                type="text"
+                                className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                value={formData.translations[activeTab]?.h3 || ""}
+                                onChange={(e) => handleTranslationChange("h3", e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                            Rich Text Content
+                        </label>
+                        <div className="border border-[#3e3e42] rounded-lg overflow-hidden [&_.ql-toolbar]:bg-[#2d2d30] [&_.ql-toolbar]:border-b-[#3e3e42] [&_.ql-container]:bg-[#1c1c1f] [&_.ql-container]:text-gray-200 [&_.ql-container]:border-none [&_.ql-editor]:min-h-[300px]">
+                            <RichTextEditor
+                                key={activeTab}
+                                value={formData.translations[activeTab]?.content || ""}
+                                onChange={(value: string) => handleTranslationChange("content", value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* General Settings */}
+            <div className="bg-[#212124] border border-[#2d2d30] rounded-xl p-8 shadow-sm">
+                <h2 className="text-xl font-bold text-white mb-8">
+                    General Settings
+                </h2>
+
+                <div className="space-y-6">
+                    {/* Slug & Category */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                Slug (URL Identifier)
+                            </label>
+                            <input
+                                type="text"
+                                required
+                                className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-400 font-mono focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                value={formData.slug}
+                                onChange={(e) => setFormData({ ...formData, slug: slugify(e.target.value) })}
+                            />
+                            <p className="mt-2 text-xs text-gray-500">Auto-generated from English title. Must be unique.</p>
+                        </div>
+                        <div>
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                Category
                             </label>
                             <select
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 cursor-pointer"
-                                value={formData.city || ""}
-                                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                                className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                value={formData.category}
+                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                             >
-                                <option value="">Select a City</option>
-                                {CITIES.map((city) => (
-                                    <option key={city} value={city}>
-                                        {city}
+                                <option value="" className="bg-[#1c1c1f]">Select a Category</option>
+                                {CATEGORIES.map((cat) => (
+                                    <option key={cat} value={cat} className="bg-[#1c1c1f]">
+                                        {cat}
                                     </option>
                                 ))}
                             </select>
                         </div>
-                    )}
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                            Article Image
-                        </label>
-                        <div className="mt-2 flex items-center gap-4">
-                            {formData.image && (
-                                <img
-                                    src={formData.image}
-                                    alt="Preview"
-                                    className="h-20 w-20 object-cover rounded-lg border border-gray-200"
-                                />
-                            )}
-                            <div className="flex-1">
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="block w-full text-sm text-gray-900
-                                      file:mr-4 file:py-2 file:px-4
-                                      file:rounded-full file:border-0
-                                      file:text-sm file:font-semibold
-                                      file:bg-indigo-50 file:text-indigo-700
-                                      hover:file:bg-indigo-100
-                                    "
-                                    onChange={handleImageUpload}
-                                    disabled={uploading}
-                                />
-                                {uploading && <p className="text-sm text-indigo-600 mt-1">Uploading...</p>}
-                            </div>
-                        </div>
                     </div>
 
-                    {/* YouTube URL */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                            YouTube URL
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="https://www.youtube.com/watch?v=..."
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
-                            value={formData.youtubeUrl || ""}
-                            onChange={(e) => setFormData({ ...formData, youtubeUrl: e.target.value })}
-                        />
-                    </div>
-
-                    {/* Gallery Images */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Image Gallery
-                        </label>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                            {formData.gallery?.map((imgUrl, index) => (
-                                <div key={index} className="relative group">
-                                    <img
-                                        src={imgUrl}
-                                        alt={`Gallery ${index}`}
-                                        className="h-24 w-full object-cover rounded-lg border border-gray-200"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => removeGalleryImage(index)}
-                                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        title="Remove Image"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                        <div>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                className="block w-full text-sm text-gray-900
-                                  file:mr-4 file:py-2 file:px-4
-                                  file:rounded-full file:border-0
-                                  file:text-sm file:font-semibold
-                                  file:bg-indigo-50 file:text-indigo-700
-                                  hover:file:bg-indigo-100
-                                "
-                                onChange={handleGalleryUpload}
-                                disabled={uploading}
-                            />
-                            <p className="mt-1 text-xs text-gray-500">Select multiple images to add to the gallery.</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Translation Tabs */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="border-b border-gray-200">
-                        <nav className="flex -mb-px overflow-x-auto" aria-label="Tabs">
-                            {LANGUAGES.map((lang) => (
-                                <button
-                                    key={lang.code}
-                                    type="button"
-                                    onClick={() => setActiveTab(lang.code)}
-                                    className={`${activeTab === lang.code
-                                        ? "border-indigo-500 text-indigo-600 bg-indigo-50"
-                                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                                        } whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex-1 text-center transition-colors cursor-pointer`}
+                    {/* City (Conditional) & Youtube URL */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {formData.category === "Area Guide" && (
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                    City
+                                </label>
+                                <select
+                                    className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                    value={formData.city || ""}
+                                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                                 >
-                                    {lang.label}
-                                </button>
-                            ))}
-                        </nav>
-                    </div>
-
-                    <div className="p-6 space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                                Title ({activeTab.toUpperCase()})
+                                    <option value="" className="bg-[#1c1c1f]">Select a City</option>
+                                    {CITIES.map((city) => (
+                                        <option key={city} value={city} className="bg-[#1c1c1f]">
+                                            {city}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        <div className={formData.category !== "Area Guide" ? "col-span-1 md:col-span-2" : ""}>
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                YouTube Video URL
                             </label>
                             <input
                                 type="text"
-                                required={activeTab === "en"} // Require English title broadly? Or handled by validation logic.
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
-                                value={formData.translations[activeTab]?.title || ""}
-                                onChange={(e) => handleTranslationChange("title", e.target.value)}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">
-                                    H2 Subtitle ({activeTab.toUpperCase()})
-                                </label>
-                                <input
-                                    type="text"
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
-                                    value={formData.translations[activeTab]?.h2 || ""}
-                                    onChange={(e) => handleTranslationChange("h2", e.target.value)}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">
-                                    H3 Subtitle ({activeTab.toUpperCase()})
-                                </label>
-                                <input
-                                    type="text"
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
-                                    value={formData.translations[activeTab]?.h3 || ""}
-                                    onChange={(e) => handleTranslationChange("h3", e.target.value)}
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Content ({activeTab.toUpperCase()})
-                            </label>
-                            <RichTextEditor
-                                key={activeTab}
-                                value={formData.translations[activeTab]?.content || ""}
-                                onChange={(value: string) =>
-                                    handleTranslationChange("content", value)
-                                }
+                                placeholder="https://www.youtube.com/watch?v=..."
+                                className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                value={formData.youtubeUrl || ""}
+                                onChange={(e) => setFormData({ ...formData, youtubeUrl: e.target.value })}
                             />
                         </div>
                     </div>
-                </div>
 
-                <div className="flex justify-end">
-                    <button
-                        type="submit"
-                        disabled={saving || uploading}
-                        className="px-6 py-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 cursor-pointer"
-                    >
-                        {saving ? "Saving..." : "Save Article"}
-                    </button>
+                    {/* Featured Image */}
+                    <div className="pt-4 border-t border-[#3e3e42]">
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-4">
+                            Main Article Image
+                        </label>
+                        <div className="flex items-center gap-6">
+                            {formData.image ? (
+                                <img
+                                    src={formData.image}
+                                    alt="Preview"
+                                    className="h-24 w-32 object-cover rounded-xl border border-[#3e3e42]"
+                                />
+                            ) : (
+                                <div className="h-24 w-32 rounded-xl border border-dashed border-[#3e3e42] bg-[#1c1c1f] flex flex-col items-center justify-center text-gray-500">
+                                    <span className="text-xs">No image</span>
+                                </div>
+                            )}
+                            <div className="flex-1">
+                                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#2d2d30] border border-[#3e3e42] rounded-lg text-sm font-medium text-gray-200 hover:bg-[#3e3e42] transition-colors">
+                                    <span>Choose Image</span>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handleImageUpload}
+                                        disabled={uploading}
+                                    />
+                                </label>
+                                {uploading && <p className="text-sm text-[#3c64f4] mt-2">Uploading...</p>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Gallery Images */}
+                    <div className="pt-4 border-t border-[#3e3e42]">
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-4">
+                            Image Gallery
+                        </label>
+
+                        {formData.gallery && formData.gallery.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-4">
+                                {formData.gallery.map((imgUrl, index) => (
+                                    <div key={index} className="relative group">
+                                        <img
+                                            src={imgUrl}
+                                            alt={`Gallery ${index}`}
+                                            className="h-24 w-full object-cover rounded-xl border border-[#3e3e42]"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeGalleryImage(index)}
+                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                                            title="Remove Image"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <div>
+                            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#2d2d30] border border-[#3e3e42] rounded-lg text-sm font-medium text-gray-200 hover:bg-[#3e3e42] transition-colors">
+                                <span>Upload Multiple Images</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    className="hidden"
+                                    onChange={handleGalleryUpload}
+                                    disabled={uploading}
+                                />
+                            </label>
+                        </div>
+                    </div>
                 </div>
-            </form>
-        </div>
+            </div>
+        </form>
     );
 }

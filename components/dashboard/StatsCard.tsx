@@ -16,23 +16,23 @@ export default function StatsCard({
     icon,
 }: StatsCardProps) {
     return (
-        <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="p-6 bg-[#212124] rounded-xl shadow-sm border border-[#2d2d30]">
             <div className="flex items-center justify-between">
                 <div>
-                    <p className="text-sm font-medium text-gray-500">{title}</p>
-                    <p className="text-2xl font-semibold text-gray-900 mt-1">{value}</p>
+                    <p className="text-[11px] font-bold tracking-wider text-gray-500 mb-1">{title.toUpperCase()}</p>
+                    <p className="text-3xl font-bold text-white mt-1">{value}</p>
                 </div>
-                <div className="p-3 bg-indigo-50 rounded-lg text-indigo-600">
+                <div className="p-3 bg-[#2a385f] rounded-lg text-[#3c64f4]">
                     {icon}
                 </div>
             </div>
             <div className="mt-4 flex items-center text-sm">
                 <span
                     className={`font-medium ${changeType === "increase"
-                            ? "text-green-600"
-                            : changeType === "decrease"
-                                ? "text-red-600"
-                                : "text-gray-500"
+                        ? "text-[#4ade80]"
+                        : changeType === "decrease"
+                            ? "text-red-400"
+                            : "text-gray-500"
                         }`}
                 >
                     {change}

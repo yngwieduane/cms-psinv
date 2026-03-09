@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Link from "next/link";
+import { Search, Plus, Edit2, Trash2 } from "lucide-react";
 
 interface BlogPost {
     id: string; // Document ID (which is the slug)
@@ -14,8 +15,6 @@ interface BlogPost {
 }
 
 import Pagination from "@/components/dashboard/Pagination";
-
-// ... existing imports
 
 export default function BlogListPage() {
     const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -132,123 +131,131 @@ export default function BlogListPage() {
     const getSortIcon = (itemName: string) => {
         if (sortConfig.key !== itemName) {
             return (
-                <svg className="w-3 h-3 ml-1 text-gray-400 opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
+                <svg className="w-3 h-3 ml-1 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
             );
         }
         return sortConfig.direction === 'asc' ? (
-            <svg className="w-3 h-3 ml-1 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
+            <svg className="w-3 h-3 ml-1 text-[#3c64f4]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
         ) : (
-            <svg className="w-3 h-3 ml-1 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+            <svg className="w-3 h-3 ml-1 text-[#3c64f4]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
         );
     };
 
-    if (loading) return <div className="p-6">Loading blog posts...</div>;
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3c64f4]"></div>
+            </div>
+        );
+    }
 
     return (
-        <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Blog Posts</h1>
-                <Link
-                    href="/dashboard/blog/new"
-                    className="px-4 py-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
-                >
-                    Create New Post
-                </Link>
-            </div>
-
-            {/* Search Bar */}
-            <div className="mb-6">
-                <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                        </svg>
-                    </div>
-                    <input
-                        type="text"
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
-                        placeholder="Search by title or author"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+        <div className="text-gray-200">
+            {/* Page Header */}
+            <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
+                <div>
+                    <h1 className="text-[28px] font-bold text-white mb-2">Blog Posts HQ</h1>
+                    <p className="text-[15px] text-gray-400">
+                        Manage your blog content portfolio.
+                    </p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Link
+                        href="/dashboard/blog/new"
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#3c64f4] hover:bg-blue-600 rounded-lg transition-colors shadow-lg shadow-blue-500/20"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add New Post
+                    </Link>
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-                <div className="flex-1 overflow-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
+            {/* Main Content Area: Search & Table */}
+            <div className="bg-[#212124] border border-[#2d2d30] rounded-xl overflow-hidden shadow-lg flex flex-col">
+                {/* Search Bar */}
+                <div className="p-4 border-b border-[#2d2d30]">
+                    <div className="relative">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                        <input
+                            type="text"
+                            className="w-full bg-[#1c1c1f] border border-[#2d2d30] text-gray-200 text-[15px] rounded-lg pl-11 pr-4 py-3 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-all placeholder:text-gray-500"
+                            placeholder="Search blog posts by title or author..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                {/* Data Table */}
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-[#2d2d30]">
                                 <th
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100"
+                                    className="px-6 py-4 text-[11px] font-bold text-gray-500 tracking-wider cursor-pointer group hover:text-gray-400 transition-colors"
                                     onClick={() => requestSort('title')}
                                 >
                                     <div className="flex items-center">
-                                        Title
-                                        {getSortIcon('title')}
+                                        TITLE {getSortIcon('title')}
                                     </div>
                                 </th>
                                 <th
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100"
+                                    className="px-6 py-4 text-[11px] font-bold text-gray-500 tracking-wider cursor-pointer group hover:text-gray-400 transition-colors"
                                     onClick={() => requestSort('author')}
                                 >
                                     <div className="flex items-center">
-                                        Author
-                                        {getSortIcon('author')}
+                                        AUTHOR {getSortIcon('author')}
                                     </div>
                                 </th>
                                 <th
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100"
+                                    className="px-6 py-4 text-[11px] font-bold text-gray-500 tracking-wider cursor-pointer group hover:text-gray-400 transition-colors"
                                     onClick={() => requestSort('date')}
                                 >
                                     <div className="flex items-center">
-                                        Date
-                                        {getSortIcon('date')}
+                                        DATE {getSortIcon('date')}
                                     </div>
                                 </th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Actions
+                                <th className="px-6 py-4 text-[11px] font-bold text-gray-500 tracking-wider text-right">
+                                    ACTIONS
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="divide-y divide-[#2d2d30]/60">
                             {currentPosts.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                                    <td colSpan={4} className="px-6 py-8 text-center text-gray-500 text-[14px]">
                                         No blog posts found matching your search.
                                     </td>
                                 </tr>
                             ) : (
                                 currentPosts.map((post) => (
-                                    <tr key={post.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium text-gray-900">
+                                    <tr key={post.id} className="hover:bg-[#28282c] transition-colors group">
+                                        <td className="px-6 py-5 whitespace-nowrap">
+                                            <div className="text-[14px] font-semibold text-gray-200">
                                                 {post.title || "Untitled"}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-500">
-                                                {post.author || "-"}
-                                            </div>
+                                        <td className="px-6 py-5 whitespace-nowrap text-[14px] text-gray-400">
+                                            {post.author || "—"}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-500">
-                                                {post.date || "-"}
-                                            </div>
+                                        <td className="px-6 py-5 whitespace-nowrap text-[14px] text-gray-400">
+                                            {post.date || "—"}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <Link
-                                                href={`/dashboard/blog/${post.id}`}
-                                                className="text-indigo-600 hover:text-indigo-900 mr-4"
-                                            >
-                                                Edit
-                                            </Link>
-                                            <button
-                                                onClick={() => handleDelete(post.id)}
-                                                className="text-red-600 hover:text-red-900"
-                                            >
-                                                Delete
-                                            </button>
+                                        <td className="px-6 py-5 whitespace-nowrap text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Link
+                                                    href={`/dashboard/blog/${post.id}`}
+                                                    className="p-2 rounded-md bg-[#2d2d30]/50 text-gray-500 hover:text-blue-400 hover:bg-blue-400/10 transition-colors"
+                                                >
+                                                    <Edit2 className="w-[18px] h-[18px]" />
+                                                </Link>
+                                                <button
+                                                    onClick={() => handleDelete(post.id)}
+                                                    className="p-2 rounded-md bg-[#2d2d30]/50 text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                                                >
+                                                    <Trash2 className="w-[18px] h-[18px]" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -257,11 +264,13 @@ export default function BlogListPage() {
                     </table>
                 </div>
                 {processedPosts.length > 0 && (
-                    <Pagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={handlePageChange}
-                    />
+                    <div className="border-t border-[#2d2d30] p-4 bg-[#212124]">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={handlePageChange}
+                        />
+                    </div>
                 )}
             </div>
         </div>

@@ -7,8 +7,8 @@ export default function DashboardPage() {
         <>
             {/* Page Title */}
             <div className="mb-8">
-                <h1 className="text-2xl font-bold text-gray-900">Overview</h1>
-                <p className="text-sm text-gray-500">
+                <h1 className="text-[28px] font-bold text-white">Overview</h1>
+                <p className="text-[15px] text-gray-400 mt-1">
                     Welcome back, here's what's happening today.
                 </p>
             </div>
@@ -104,40 +104,40 @@ export default function DashboardPage() {
             {/* Content Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Chart Area Placeholder */}
-                <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <div className="lg:col-span-2 bg-[#212124] p-6 rounded-xl shadow-sm border border-[#2d2d30]">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900">
+                        <h3 className="text-lg font-semibold text-white">
                             Traffic Overview
                         </h3>
-                        <button className="text-indigo-600 text-sm font-medium hover:text-indigo-700">
+                        <button className="text-[#3c64f4] text-sm font-medium hover:text-blue-400">
                             View Report
                         </button>
                     </div>
-                    <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                        <p className="text-gray-400">Chart Visualization Placeholder</p>
+                    <div className="h-64 flex items-center justify-center bg-[#1c1c1f] rounded-lg border border-dashed border-[#2d2d30]">
+                        <p className="text-gray-500">Chart Visualization Placeholder</p>
                     </div>
                 </div>
 
                 {/* Recent Activity */}
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <div className="bg-[#212124] p-6 rounded-xl shadow-sm border border-[#2d2d30]">
+                    <h3 className="text-lg font-semibold text-white mb-4">
                         Recent Activity
                     </h3>
                     <div className="space-y-4">
                         {[1, 2, 3, 4].map((i) => (
                             <div key={i} className="flex items-start space-x-3">
-                                <div className="w-2 h-2 mt-2 bg-indigo-500 rounded-full"></div>
+                                <div className="w-2 h-2 mt-2 bg-[#3c64f4] rounded-full"></div>
                                 <div>
-                                    <p className="text-sm text-gray-800">
+                                    <p className="text-sm text-gray-300">
                                         New user registered{" "}
-                                        <span className="font-semibold">User #{1000 + i}</span>
+                                        <span className="font-semibold text-white">User #{1000 + i}</span>
                                     </p>
-                                    <p className="text-xs text-gray-500">{i * 15} mins ago</p>
+                                    <p className="text-xs text-gray-500 mt-1">{i * 15} mins ago</p>
                                 </div>
                             </div>
                         ))}
                     </div>
-                    <button className="w-full mt-6 py-2 text-sm text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <button className="w-full mt-6 py-2 text-sm text-gray-400 bg-[#2d2d30]/50 rounded-lg hover:bg-[#2d2d30] hover:text-white transition-colors">
                         View All History
                     </button>
                 </div>

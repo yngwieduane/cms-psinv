@@ -6,7 +6,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import { useRouter, useParams } from "next/navigation";
 import RichTextEditor from "@/components/dashboard/RichTextEditor";
-import Link from "next/link";
+import { Eye, Save, RefreshCw, Link as LinkIcon, Languages, X } from "lucide-react";
 
 interface BlogPostData {
     author: string;
@@ -24,7 +24,7 @@ interface BlogPostData {
     title: string;
 }
 
-export default function BlogEditorPage({ params }: { params: Promise<{ slug: string }> }) {
+export default function BlogEditorPage() {
     const routeParams = useParams();
     const slugParam = routeParams.slug as string;
     const isNew = slugParam === "new";
@@ -64,7 +64,6 @@ export default function BlogEditorPage({ params }: { params: Promise<{ slug: str
                 const data = docSnap.data() as BlogPostData;
                 setFormData({
                     ...data,
-                    // Ensure arrays are initialized if missing in DB
                     gallery: data.gallery || [],
                     youtubeUrl: data.youtubeUrl || "",
                 });
@@ -147,13 +146,10 @@ export default function BlogEditorPage({ params }: { params: Promise<{ slug: str
         const newSlug = slugify(title);
 
         setFormData(prev => {
-            // Auto update slug only if it matches previous auto-gen slug or is new/empty
-            // Simple logic: if creating new, auto-fill slug. If editing, maybe keep as is unless explicit?
-            // User requested explicit fields. Let's auto-fill slug for convenience if it's new.
             const updates: Partial<BlogPostData> = { title };
             if (isNew && (!prev.slug || prev.slug === slugify(prev.title))) {
                 updates.slug = newSlug;
-                updates.id = newSlug; // ID is redundant as per request
+                updates.id = newSlug;
             }
             return { ...prev, ...updates };
         });
@@ -178,12 +174,11 @@ export default function BlogEditorPage({ params }: { params: Promise<{ slug: str
 
         setSaving(true);
         try {
-            // Document ID is the SLUG
             const docId = formData.slug;
 
             const postData = {
                 ...formData,
-                id: docId, // Ensure ID matches Slug
+                id: docId,
                 lastSyncedAt: serverTimestamp(),
             };
 
@@ -198,42 +193,86 @@ export default function BlogEditorPage({ params }: { params: Promise<{ slug: str
         }
     };
 
-    if (loading) return <div className="p-6">Loading editor...</div>;
+    if (loading) return <div className="p-6 text-gray-400">Loading editor...</div>;
+
+    const currentTitle = formData.title || (isNew ? "New Blog Post" : "Edit Blog Post");
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">
-                    {isNew ? "Create Blog Post" : "Edit Blog Post"}
-                </h1>
-                <Link
-                    href="/dashboard/blog"
-                    className="text-gray-600 hover:text-gray-900"
-                >
-                    Cancel
-                </Link>
+        <form onSubmit={handleSave} className="p-6 max-w-6xl mx-auto space-y-8">
+            {/* Header Area */}
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-[13px] font-medium text-[#10b981]">
+                        <div className="w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                        Connected
+                    </div>
+                    <h1 className="text-[28px] font-bold text-white tracking-tight">
+                        {currentTitle}
+                    </h1>
+                </div>
+
+                <div className="flex items-center gap-3 pt-6 md:pt-0">
+                    <button
+                        type="button"
+                        onClick={() => router.back()}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#3e3e42] text-gray-300 bg-[#2d2d30]/50 hover:bg-[#3e3e42] transition-colors text-sm font-medium"
+                    >
+                        Cancel
+                    </button>
+                    <a
+                        href={formData.slug ? `https://www.psinv.net/en/blog/${formData.slug}` : "#"}
+                        target={formData.slug ? "_blank" : "_self"}
+                        rel="noopener noreferrer"
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg border border-[#3c64f4] text-[#3c64f4] transition-colors text-sm font-medium ${!formData.slug
+                                ? 'opacity-50 cursor-not-allowed'
+                                : 'hover:bg-[#3c64f4]/10'
+                            }`}
+                        onClick={(e) => {
+                            if (!formData.slug) {
+                                e.preventDefault();
+                            }
+                        }}
+                    >
+                        <Eye className="w-4 h-4" />
+                        Preview
+                    </a>
+                    <button
+                        type="submit"
+                        disabled={saving || uploading}
+                        className="flex items-center gap-2 px-6 py-2 rounded-lg bg-[#3c64f4] text-white hover:bg-[#2b4ac0] transition-colors disabled:opacity-50 text-sm font-medium shadow-[0_0_15px_rgba(60,100,244,0.3)]"
+                    >
+                        <Save className="w-4 h-4" />
+                        {saving ? "Saving..." : "Save"}
+                    </button>
+                </div>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-8">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
+            {/* Main Content Area */}
+            <div className="bg-[#212124] border border-[#2d2d30] rounded-xl p-8 shadow-sm">
+                <h2 className="text-xl font-bold text-white mb-8">
+                    Post Details
+                </h2>
+
+                <div className="space-y-6">
                     {/* Title & Slug */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Title</label>
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Title</label>
                             <input
                                 type="text"
                                 required
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
+                                className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
                                 value={formData.title}
                                 onChange={handleTitleChange}
+                                placeholder="e.g. 5 Tips for First-Time Buyers"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Slug (ID)</label>
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Slug (ID)</label>
                             <input
                                 type="text"
                                 required
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-mono text-gray-900 bg-gray-50"
+                                className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-400 font-mono focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
                                 value={formData.slug}
                                 onChange={(e) => setFormData({ ...formData, slug: slugify(e.target.value), id: slugify(e.target.value) })}
                             />
@@ -243,19 +282,19 @@ export default function BlogEditorPage({ params }: { params: Promise<{ slug: str
                     {/* Author & Date */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Author</label>
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Author</label>
                             <input
                                 type="text"
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
+                                className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
                                 value={formData.author}
                                 onChange={(e) => setFormData({ ...formData, author: e.target.value })}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Date</label>
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Date</label>
                             <input
                                 type="date"
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
+                                className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors [color-scheme:dark]"
                                 value={formData.date}
                                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                             />
@@ -265,20 +304,21 @@ export default function BlogEditorPage({ params }: { params: Promise<{ slug: str
                     {/* Category & Category Key */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Category</label>
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Category</label>
                             <input
                                 type="text"
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
+                                className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
                                 value={formData.category}
                                 onChange={handleCategoryChange}
+                                placeholder="e.g. Market Trends"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Category Key (Auto)</label>
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Category Key (Auto)</label>
                             <input
                                 type="text"
                                 readOnly
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-500 bg-gray-50 cursor-not-allowed"
+                                className="w-full bg-[#1c1c1f]/50 border border-[#3e3e42]/50 rounded-lg px-4 py-3 text-sm text-gray-500 cursor-not-allowed focus:outline-none transition-colors"
                                 value={formData.categoryKey}
                             />
                         </div>
@@ -286,124 +326,124 @@ export default function BlogEditorPage({ params }: { params: Promise<{ slug: str
 
                     {/* Summary */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Summary</label>
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Summary</label>
                         <textarea
                             rows={3}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
+                            className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
                             value={formData.summary}
                             onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
                         />
                     </div>
 
-                    {/* Image */}
+                    {/* Rich Content HTML */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Featured Image</label>
-                        <div className="mt-2 flex items-center gap-4">
-                            {formData.imageUrl && (
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Content HTML</label>
+                        <div className="border border-[#3e3e42] rounded-lg overflow-hidden [&_.ql-toolbar]:bg-[#2d2d30] [&_.ql-toolbar]:border-b-[#3e3e42] [&_.ql-container]:bg-[#1c1c1f] [&_.ql-container]:text-gray-200 [&_.ql-container]:border-none [&_.ql-editor]:min-h-[300px]">
+                            <RichTextEditor
+                                value={formData.contentHtml}
+                                onChange={(value: string) => setFormData(prev => ({ ...prev, contentHtml: value }))}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Media Area */}
+            <div className="bg-[#212124] border border-[#2d2d30] rounded-xl p-8 shadow-sm">
+                <h2 className="text-xl font-bold text-white mb-8">
+                    Media
+                </h2>
+
+                <div className="space-y-8">
+                    {/* Featured Image */}
+                    <div>
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-4">Featured Image</label>
+                        <div className="flex items-center gap-6">
+                            {formData.imageUrl ? (
                                 <img
                                     src={formData.imageUrl}
                                     alt="Preview"
-                                    className="h-20 w-20 object-cover rounded-lg border border-gray-200"
+                                    className="h-24 w-32 object-cover rounded-xl border border-[#3e3e42]"
                                 />
+                            ) : (
+                                <div className="h-24 w-32 rounded-xl border border-dashed border-[#3e3e42] bg-[#1c1c1f] flex flex-col items-center justify-center text-gray-500">
+                                    <span className="text-xs">No image</span>
+                                </div>
                             )}
                             <div className="flex-1">
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="block w-full text-sm text-gray-900
-                                      file:mr-4 file:py-2 file:px-4
-                                      file:rounded-full file:border-0
-                                      file:text-sm file:font-semibold
-                                      file:bg-indigo-50 file:text-indigo-700
-                                      hover:file:bg-indigo-100
-                                    "
-                                    onChange={handleImageUpload}
-                                    disabled={uploading}
-                                />
-                                {uploading && <p className="text-sm text-indigo-600 mt-1">Uploading...</p>}
+                                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#2d2d30] border border-[#3e3e42] rounded-lg text-sm font-medium text-gray-200 hover:bg-[#3e3e42] transition-colors">
+                                    <span>Choose Image</span>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handleImageUpload}
+                                        disabled={uploading}
+                                    />
+                                </label>
+                                {uploading && <p className="text-sm text-[#3c64f4] mt-2">Uploading...</p>}
                             </div>
                         </div>
                     </div>
 
                     {/* YouTube URL */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                            YouTube URL
+                    <div className="pt-6 border-t border-[#3e3e42]">
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                            YouTube Video URL
                         </label>
                         <input
                             type="text"
                             placeholder="https://www.youtube.com/watch?v=..."
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
+                            className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
                             value={formData.youtubeUrl || ""}
                             onChange={(e) => setFormData({ ...formData, youtubeUrl: e.target.value })}
                         />
                     </div>
 
                     {/* Gallery Images */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <div className="pt-6 border-t border-[#3e3e42]">
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-4">
                             Image Gallery
                         </label>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                            {formData.gallery?.map((imgUrl, index) => (
-                                <div key={index} className="relative group">
-                                    <img
-                                        src={imgUrl}
-                                        alt={`Gallery ${index}`}
-                                        className="h-24 w-full object-cover rounded-lg border border-gray-200"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => removeGalleryImage(index)}
-                                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        title="Remove Image"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
+
+                        {formData.gallery && formData.gallery.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-4">
+                                {formData.gallery.map((imgUrl, index) => (
+                                    <div key={index} className="relative group">
+                                        <img
+                                            src={imgUrl}
+                                            alt={`Gallery ${index}`}
+                                            className="h-24 w-full object-cover rounded-xl border border-[#3e3e42]"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeGalleryImage(index)}
+                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                                            title="Remove Image"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
                         <div>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                className="block w-full text-sm text-gray-900
-                                  file:mr-4 file:py-2 file:px-4
-                                  file:rounded-full file:border-0
-                                  file:text-sm file:font-semibold
-                                  file:bg-indigo-50 file:text-indigo-700
-                                  hover:file:bg-indigo-100
-                                "
-                                onChange={handleGalleryUpload}
-                                disabled={uploading}
-                            />
-                            <p className="mt-1 text-xs text-gray-500">Select multiple images to add to the gallery.</p>
+                            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#2d2d30] border border-[#3e3e42] rounded-lg text-sm font-medium text-gray-200 hover:bg-[#3e3e42] transition-colors">
+                                <span>Upload Multiple Images</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    className="hidden"
+                                    onChange={handleGalleryUpload}
+                                    disabled={uploading}
+                                />
+                            </label>
                         </div>
                     </div>
                 </div>
-
-                {/* Rich Content */}
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Content HTML</label>
-                    <RichTextEditor
-                        value={formData.contentHtml}
-                        onChange={(value: string) => setFormData(prev => ({ ...prev, contentHtml: value }))}
-                    />
-                </div>
-
-                <div className="flex justify-end pt-4">
-                    <button
-                        type="submit"
-                        disabled={saving || uploading}
-                        className="px-8 py-3 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 shadow-sm font-medium transition-colors cursor-pointer"
-                    >
-                        {saving ? "Saving..." : "Save Blog Post"}
-                    </button>
-                </div>
-            </form>
-        </div>
+            </div>
+        </form>
     );
 }

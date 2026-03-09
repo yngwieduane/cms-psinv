@@ -40,8 +40,8 @@ export default function DashboardLayout({
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-50">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <div className="flex items-center justify-center min-h-screen bg-[#1c1c1f]">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3c64f4]"></div>
             </div>
         );
     }
@@ -49,14 +49,14 @@ export default function DashboardLayout({
     if (!user) return null;
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-[#1c1c1f] text-gray-200 selection:bg-blue-500/30">
             <Sidebar />
 
             <div className="md:pl-64 flex flex-col min-h-screen transition-all duration-300">
                 <Header userEmail={user.email} onLogout={handleLogout} />
 
-                <main className="flex-1 px-6 py-8">
-                    <div className="max-w-7xl mx-auto">
+                <main className="flex-1 px-8 py-10">
+                    <div className="max-w-[1400px] mx-auto">
                         {children}
                     </div>
                 </main>

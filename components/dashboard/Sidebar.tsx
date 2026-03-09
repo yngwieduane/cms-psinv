@@ -34,9 +34,14 @@ export default function Sidebar() {
     ];
 
     return (
-        <aside className="fixed inset-y-0 left-0 z-10 w-64 bg-white border-r border-gray-200 hidden md:flex md:flex-col">
-            <div className="flex items-center justify-center h-16 border-b border-gray-100 bg-indigo-600">
-                <span className="text-xl font-bold text-white tracking-wider">CMS ADMIN</span>
+        <aside className="fixed inset-y-0 left-0 z-10 w-64 bg-[#232326] border-r border-[#2d2d30] hidden md:flex md:flex-col shadow-xl">
+            <div className="flex items-center justify-center h-16 border-b border-[#2d2d30] bg-[#1c1c1f]">
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 bg-[#3c64f4] rounded-lg text-white font-bold text-lg">
+                        P
+                    </div>
+                    <span className="text-xl font-bold text-white tracking-wider">CMS ADMIN</span>
+                </div>
             </div>
             <div className="flex-1 overflow-y-auto py-4">
                 <nav className="px-4 space-y-2">
@@ -46,12 +51,12 @@ export default function Sidebar() {
                             <Link
                                 key={item.name}
                                 href={item.href}
-                                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${isActive
-                                    ? "bg-indigo-50 text-indigo-600"
-                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group border ${isActive
+                                    ? "bg-[#28324a] text-[#3c64f4] border-[#303f5e]"
+                                    : "border-transparent text-gray-400 hover:bg-[#2d2d30]/50 hover:text-gray-200"
                                     }`}
                             >
-                                <div className={`${isActive ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-500"}`}>
+                                <div className={`${isActive ? "text-[#3c64f4]" : "text-gray-500 group-hover:text-gray-400"}`}>
                                     {item.icon}
                                 </div>
                                 <span className="ml-3">{item.name}</span>
@@ -60,9 +65,9 @@ export default function Sidebar() {
                     })}
                 </nav>
             </div>
-            <div className="p-4 border-t border-gray-200">
-                <div className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <div className="p-4 border-t border-[#2d2d30]">
+                <div className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 rounded-lg hover:bg-[#2d2d30]/50 hover:text-gray-200 transition-colors cursor-pointer border border-transparent">
+                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     <span>Help & Support</span>
                 </div>
             </div>
