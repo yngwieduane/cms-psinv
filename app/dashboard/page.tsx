@@ -1,8 +1,101 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import StatsCard from "@/components/dashboard/StatsCard";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+interface ActivityItem {
+    id: string;
+    title: string;
+    type: "Article" | "Blog";
+    timestamp: number;
+    timeAgo: string;
+}
 
 export default function DashboardPage() {
+    const [stats, setStats] = useState({ articles: 0, blogs: 0 });
+    const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchDashboardData() {
+            try {
+                // Fetch Articles
+                const articlesSnap = await getDocs(collection(db, "articles"));
+
+                // Fetch Blogs
+                const blogsSnap = await getDocs(collection(db, "blog_posts"));
+
+                setStats({
+                    articles: articlesSnap.size,
+                    blogs: blogsSnap.size
+                });
+
+                // Process Recent Activity
+                const activities: ActivityItem[] = [];
+                const now = Date.now();
+
+                const getTimeAgo = (timestamp: number) => {
+                    const diffMins = Math.max(0, Math.floor((now - timestamp) / (1000 * 60))); // Avoid negative mins
+                    if (diffMins < 1) return `Just now`;
+                    if (diffMins < 60) return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
+                    const diffHours = Math.floor(diffMins / 60);
+                    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+                    const diffDays = Math.floor(diffHours / 24);
+                    return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+                };
+
+                articlesSnap.forEach(doc => {
+                    const data = doc.data();
+                    const title = data.translations?.en?.title || data.title || "Untitled Article";
+
+                    // Determine timestamp. Try updatedAt, then createdAt, then fallback.
+                    let ts = now;
+                    if (data.updatedAt?.toMillis) ts = data.updatedAt.toMillis();
+                    else if (data.createdAt?.toMillis) ts = data.createdAt.toMillis();
+
+                    activities.push({
+                        id: doc.id,
+                        title,
+                        type: "Article",
+                        timestamp: ts,
+                        timeAgo: getTimeAgo(ts)
+                    });
+                });
+
+                blogsSnap.forEach(doc => {
+                    const data = doc.data();
+                    const title = data.title || "Untitled Blog";
+
+                    // Determine timestamp. Try lastSyncedAt, then date string, then fallback.
+                    let ts = now;
+                    if (data.lastSyncedAt?.toMillis) ts = data.lastSyncedAt.toMillis();
+                    else if (data.date) ts = new Date(data.date).getTime();
+
+                    activities.push({
+                        id: doc.id,
+                        title,
+                        type: "Blog",
+                        timestamp: ts,
+                        timeAgo: getTimeAgo(ts)
+                    });
+                });
+
+                // Sort by timestamp desc and take top 5
+                activities.sort((a, b) => b.timestamp - a.timestamp);
+                setRecentActivity(activities.slice(0, 5));
+
+            } catch (error) {
+                console.error("Error fetching dashboard data:", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchDashboardData();
+    }, []);
+
     return (
         <>
             {/* Page Title */}
@@ -16,86 +109,24 @@ export default function DashboardPage() {
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <StatsCard
-                    title="Total Revenue"
-                    value="$45,231.89"
-                    change="+20.1%"
+                    title="Total Articles"
+                    value={loading ? "..." : stats.articles.toString()}
+                    change="live"
                     changeType="increase"
                     icon={
-                        <svg
-                            className="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                         </svg>
                     }
                 />
                 <StatsCard
-                    title="Active Users"
-                    value="2,345"
-                    change="+15.2%"
+                    title="Total Blogs"
+                    value={loading ? "..." : stats.blogs.toString()}
+                    change="live"
                     changeType="increase"
                     icon={
-                        <svg
-                            className="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                            />
-                        </svg>
-                    }
-                />
-                <StatsCard
-                    title="New Signups"
-                    value="345"
-                    change="-2.5%"
-                    changeType="decrease"
-                    icon={
-                        <svg
-                            className="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                            />
-                        </svg>
-                    }
-                />
-                <StatsCard
-                    title="Bounce Rate"
-                    value="42.3%"
-                    change="+0.0%"
-                    changeType="neutral"
-                    icon={
-                        <svg
-                            className="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                            />
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                     }
                 />
@@ -109,7 +140,7 @@ export default function DashboardPage() {
                         <h3 className="text-lg font-semibold text-white">
                             Traffic Overview
                         </h3>
-                        <button className="text-[#3c64f4] text-sm font-medium hover:text-blue-400">
+                        <button className="text-[#3c64f4] text-sm font-medium hover:text-[#3c64f4]/80">
                             View Report
                         </button>
                     </div>
@@ -124,18 +155,26 @@ export default function DashboardPage() {
                         Recent Activity
                     </h3>
                     <div className="space-y-4">
-                        {[1, 2, 3, 4].map((i) => (
-                            <div key={i} className="flex items-start space-x-3">
-                                <div className="w-2 h-2 mt-2 bg-[#3c64f4] rounded-full"></div>
-                                <div>
-                                    <p className="text-sm text-gray-300">
-                                        New user registered{" "}
-                                        <span className="font-semibold text-white">User #{1000 + i}</span>
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-1">{i * 15} mins ago</p>
+                        {loading ? (
+                            <p className="text-sm text-gray-500">Loading activity...</p>
+                        ) : recentActivity.length > 0 ? (
+                            recentActivity.map((item, i) => (
+                                <div key={i} className="flex items-start space-x-3">
+                                    <div className={`w-2 h-2 mt-2 rounded-full ${item.type === 'Article' ? 'bg-[#10b981]' : 'bg-[#3c64f4]'} shadow-[0_0_8px_rgba(60,100,244,0.3)]`}></div>
+                                    <div className="flex-1">
+                                        <p className="text-sm text-gray-300">
+                                            {item.type} {item.id === "new" ? "created" : "updated"}
+                                        </p>
+                                        <p className="font-semibold text-white text-sm mt-0.5 truncate max-w-[200px] xl:max-w-[260px]" title={item.title}>
+                                            {item.title}
+                                        </p>
+                                        <p className="text-[11px] text-gray-500 mt-1 uppercase tracking-wider font-bold">{item.timeAgo}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))
+                        ) : (
+                            <p className="text-sm text-gray-500">No recent activity found.</p>
+                        )}
                     </div>
                     <button className="w-full mt-6 py-2 text-sm text-gray-400 bg-[#2d2d30]/50 rounded-lg hover:bg-[#2d2d30] hover:text-white transition-colors">
                         View All History
