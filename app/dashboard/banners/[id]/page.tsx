@@ -411,7 +411,7 @@ export default function BannerEditorPage() {
                             {/* Icon */}
                             <div className="pt-6 border-t border-[#3e3e42]">
                                 <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-4">
-                                    Decorative Icon (SVG/PNG)
+                                    Decorative Icon (SVG/PNG/WebP)
                                 </label>
                                 <div className="flex items-center gap-4">
                                     <div className="w-16 h-16 rounded-xl border border-[#3e3e42] bg-[#1c1c1f] flex items-center justify-center overflow-hidden">
@@ -425,7 +425,7 @@ export default function BannerEditorPage() {
                                         <label className="cursor-pointer flex items-center justify-center w-full px-4 py-2 bg-[#2d2d30] border border-[#3e3e42] rounded-lg text-sm font-medium text-gray-200 hover:bg-[#3e3e42] transition-colors relative overflow-hidden mb-2">
                                             <span className={uploadingIcon ? 'opacity-0' : 'opacity-100 transition-opacity'}>Upload Icon</span>
                                             {uploadingIcon && <span className="absolute text-[#3c64f4]">Wait...</span>}
-                                            <input type="file" accept="image/png,image/svg+xml" className="hidden" onChange={(e) => handleMediaUpload(e, 'icon', 'icons')} disabled={uploadingIcon} />
+                                            <input type="file" accept="image/png,image/svg+xml,image/webp" className="hidden" onChange={(e) => handleMediaUpload(e, 'icon', 'icons')} disabled={uploadingIcon} />
                                         </label>
                                         {formData.iconUrl && (
                                             <button type="button" onClick={() => setFormData(prev => ({ ...prev, iconUrl: "" }))} className="text-xs text-red-400 hover:text-red-300 block w-full text-center">
