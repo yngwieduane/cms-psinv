@@ -22,6 +22,7 @@ interface ArticleData {
     slug: string;
     category: string;
     city?: string;
+    status: string;
     translations: {
         [key: string]: Translation;
     };
@@ -73,6 +74,7 @@ export default function ArticleEditorPage() {
         slug: "",
         category: "",
         city: "",
+        status: "Draft",
         translations: {
             en: { title: "", h2: "", h3: "", content: "" },
             ar: { title: "", h2: "", h3: "", content: "" },
@@ -99,6 +101,7 @@ export default function ArticleEditorPage() {
                     ...data,
                     gallery: data.gallery || [],
                     youtubeUrl: data.youtubeUrl || "",
+                    status: data.status || "Draft",
                     translations: { ...prev.translations, ...data.translations },
                 }));
             } else {
@@ -244,7 +247,6 @@ export default function ArticleEditorPage() {
                 await setDoc(doc(db, "articles", formData.slug), {
                     ...articleData,
                     createdAt: serverTimestamp(),
-                    status: "draft",
                 });
             } else {
                 if (articleId !== formData.slug) {
@@ -294,8 +296,8 @@ export default function ArticleEditorPage() {
                         target={formData.slug && formData.category ? "_blank" : "_self"}
                         rel="noopener noreferrer"
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg border border-[#3c64f4] text-[#3c64f4] transition-colors text-sm font-medium ${!(formData.slug && formData.category)
-                                ? 'opacity-50 cursor-not-allowed'
-                                : 'hover:bg-[#3c64f4]/10'
+                            ? 'opacity-50 cursor-not-allowed'
+                            : 'hover:bg-[#3c64f4]/10'
                             }`}
                         onClick={(e) => {
                             if (!(formData.slug && formData.category)) {
@@ -405,8 +407,8 @@ export default function ArticleEditorPage() {
                 </h2>
 
                 <div className="space-y-6">
-                    {/* Slug & Category */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Slug, Category & Status */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
                             <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
                                 Slug (URL Identifier)
@@ -435,6 +437,19 @@ export default function ArticleEditorPage() {
                                         {cat}
                                     </option>
                                 ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                Status
+                            </label>
+                            <select
+                                className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                value={formData.status}
+                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                            >
+                                <option value="Draft" className="bg-[#1c1c1f]">Draft</option>
+                                <option value="Published" className="bg-[#1c1c1f]">Published</option>
                             </select>
                         </div>
                     </div>
