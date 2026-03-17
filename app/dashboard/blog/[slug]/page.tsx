@@ -1,6 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+
+const BLOG_CATEGORIES = [
+    "Real Estate Tips in Dubai",
+    "Real Estate Tips in Abu Dhabi",
+    "UAE Real Estate",
+    "UAE Real Estate Trends",
+    "Dubai Real Estate",
+    "Abu Dhabi Real Estate",
+    "New Project Launch in Abu Dhabi",
+    "New Project Launch in Dubai"
+];
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
@@ -33,6 +44,19 @@ export default function BlogEditorPage() {
     const [loading, setLoading] = useState(!isNew);
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+
+    const categoryRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (categoryRef.current && !categoryRef.current.contains(event.target as Node)) {
+                setIsCategoryDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     const [formData, setFormData] = useState<BlogPostData>({
         author: "",
@@ -224,8 +248,8 @@ export default function BlogEditorPage() {
                         target={formData.slug ? "_blank" : "_self"}
                         rel="noopener noreferrer"
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg border border-[#3c64f4] text-[#3c64f4] transition-colors text-sm font-medium ${!formData.slug
-                                ? 'opacity-50 cursor-not-allowed'
-                                : 'hover:bg-[#3c64f4]/10'
+                            ? 'opacity-50 cursor-not-allowed'
+                            : 'hover:bg-[#3c64f4]/10'
                             }`}
                         onClick={(e) => {
                             if (!formData.slug) {
@@ -303,15 +327,41 @@ export default function BlogEditorPage() {
 
                     {/* Category & Category Key */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
+                        <div ref={categoryRef} className="relative">
                             <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Category</label>
                             <input
                                 type="text"
                                 className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
                                 value={formData.category}
                                 onChange={handleCategoryChange}
-                                placeholder="e.g. Market Trends"
+                                onFocus={() => setIsCategoryDropdownOpen(true)}
+                                placeholder="Search or select category..."
                             />
+                            {isCategoryDropdownOpen && (
+                                <div className="absolute z-10 w-full mt-1 bg-[#1c1c1f] border border-[#3e3e42] rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                    {BLOG_CATEGORIES.filter(c => c.toLowerCase().includes(formData.category.toLowerCase())).map(cat => (
+                                        <div
+                                            key={cat}
+                                            className="px-4 py-2 text-sm text-gray-200 hover:bg-[#3e3e42] cursor-pointer transition-colors"
+                                            onClick={() => {
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    category: cat,
+                                                    categoryKey: slugify(cat)
+                                                }));
+                                                setIsCategoryDropdownOpen(false);
+                                            }}
+                                        >
+                                            {cat}
+                                        </div>
+                                    ))}
+                                    {BLOG_CATEGORIES.filter(c => c.toLowerCase().includes(formData.category.toLowerCase())).length === 0 && (
+                                        <div className="px-4 py-2 text-sm text-gray-500">
+                                            No matches found
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         <div>
                             <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Category Key (Auto)</label>

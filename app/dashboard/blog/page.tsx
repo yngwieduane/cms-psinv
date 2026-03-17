@@ -10,6 +10,7 @@ interface BlogPost {
     id: string; // Document ID (which is the slug)
     title: string;
     author: string;
+    category?: string;
     date: string;
     // other fields unnecessary for list view
 }
@@ -46,6 +47,7 @@ export default function BlogListPage() {
                     id: doc.id,
                     title: data.title,
                     author: data.author,
+                    category: data.category,
                     date: data.date
                 } as BlogPost);
             });
@@ -85,7 +87,8 @@ export default function BlogListPage() {
         const query = searchQuery.toLowerCase();
         const titleMatch = post.title?.toLowerCase().includes(query);
         const authorMatch = post.author?.toLowerCase().includes(query);
-        return titleMatch || authorMatch;
+        const categoryMatch = post.category?.toLowerCase().includes(query);
+        return titleMatch || authorMatch || categoryMatch;
     });
 
     // 2. Sort
@@ -179,7 +182,7 @@ export default function BlogListPage() {
                         <input
                             type="text"
                             className="w-full bg-[#1c1c1f] border border-[#2d2d30] text-gray-200 text-[15px] rounded-lg pl-11 pr-4 py-3 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-all placeholder:text-gray-500"
-                            placeholder="Search blog posts by title or author..."
+                            placeholder="Search blog posts by title, author, or category..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -205,6 +208,14 @@ export default function BlogListPage() {
                                 >
                                     <div className="flex items-center">
                                         AUTHOR {getSortIcon('author')}
+                                    </div>
+                                </th>
+                                <th
+                                    className="px-6 py-4 text-[11px] font-bold text-gray-500 tracking-wider cursor-pointer group hover:text-gray-400 transition-colors"
+                                    onClick={() => requestSort('category')}
+                                >
+                                    <div className="flex items-center">
+                                        CATEGORY {getSortIcon('category')}
                                     </div>
                                 </th>
                                 <th
@@ -237,6 +248,11 @@ export default function BlogListPage() {
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-[14px] text-gray-400">
                                             {post.author || "—"}
+                                        </td>
+                                        <td className="px-6 py-5 whitespace-nowrap">
+                                            <span className="px-2.5 py-1 inline-flex text-xs font-semibold rounded-md bg-[#2d2d30] text-gray-300 border border-[#3e3e42]">
+                                                {post.category || "Uncategorized"}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-[14px] text-gray-400">
                                             {post.date || "—"}
