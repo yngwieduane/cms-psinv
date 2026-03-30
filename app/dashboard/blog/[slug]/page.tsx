@@ -9,8 +9,12 @@ const BLOG_CATEGORIES = [
     "UAE Real Estate Trends",
     "Dubai Real Estate",
     "Abu Dhabi Real Estate",
+    "Ras Al Khaimah Real Estate",
+    "Sharjah Real Estate",
     "New Project Launch in Abu Dhabi",
-    "New Project Launch in Dubai"
+    "New Project Launch in Dubai",
+    "New Project Launch in Ras Al Khaimah",
+    "New Project Launch in Sharjah"
 ];
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
