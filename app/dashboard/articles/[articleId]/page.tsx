@@ -71,6 +71,7 @@ export default function ArticleEditorPage() {
     const [isAiSectionOpen, setIsAiSectionOpen] = useState(false);
     const [aiPrompt, setAiPrompt] = useState("");
     const [generatingAi, setGeneratingAi] = useState(false);
+    const [translating, setTranslating] = useState(false);
 
     const [formData, setFormData] = useState<ArticleData>({
         image: "",
@@ -277,6 +278,62 @@ export default function ArticleEditorPage() {
         }
     };
 
+    const handleAutoTranslate = async () => {
+        const enData = formData.translations.en;
+        if (!enData || !enData.title || !enData.content || enData.content === "<p><br></p>") {
+            alert("Please ensure English Title and Content exist before translating.");
+            return;
+        }
+
+        setTranslating(true);
+        try {
+            const targetLanguages = LANGUAGES.filter(l => l.code !== 'en').map(l => ({ code: l.code, name: l.label }));
+            const res = await fetch("/api/translate-article", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title: enData.title,
+                    h2: enData.h2,
+                    h3: enData.h3,
+                    content: enData.content,
+                    targetLanguages
+                })
+            });
+
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.error || "Failed to automate translations");
+            }
+
+            setFormData(prev => {
+                const newTranslations = { ...prev.translations };
+                
+                Object.keys(data).forEach(langCode => {
+                    newTranslations[langCode] = {
+                        ...newTranslations[langCode],
+                        title: data[langCode].title || newTranslations[langCode]?.title || "",
+                        h2: data[langCode].h2 || newTranslations[langCode]?.h2 || "",
+                        h3: data[langCode].h3 || newTranslations[langCode]?.h3 || "",
+                        content: data[langCode].content || newTranslations[langCode]?.content || "",
+                    };
+                });
+                
+                return {
+                    ...prev,
+                    translations: newTranslations
+                };
+            });
+            
+            alert("Translations completed successfully!");
+        } catch (error: any) {
+            console.error("Translation error:", error);
+            alert(`Error: ${error.message}`);
+        } finally {
+            setTranslating(false);
+        }
+    };
+
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -425,22 +482,34 @@ export default function ArticleEditorPage() {
                 )}
             </div>
 
-            {/* Language Tabs */}
-            <div className="bg-[#212124] border border-[#2d2d30] rounded-xl flex items-center overflow-x-auto p-1.5">
-                {LANGUAGES.map((lang) => (
-                    <button
-                        key={lang.code}
-                        type="button"
-                        onClick={() => setActiveTab(lang.code)}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 text-sm font-medium rounded-lg transition-colors ${activeTab === lang.code
-                            ? "text-white bg-[#2d2d30] shadow-sm border border-[#3e3e42]"
-                            : "text-gray-400 hover:text-gray-300 hover:bg-[#2d2d30]/50 border border-transparent"
-                            }`}
-                    >
-                        <span>{lang.flag} {lang.label}</span>
-                        <div className={`w-1.5 h-1.5 rounded-full ${formData.translations[lang.code]?.title ? 'bg-[#10b981]' : 'bg-gray-600'}`}></div>
-                    </button>
-                ))}
+            {/* Language Tabs & Auto-Translate */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="bg-[#212124] border border-[#2d2d30] rounded-xl flex items-center overflow-x-auto p-1.5 flex-1">
+                    {LANGUAGES.map((lang) => (
+                        <button
+                            key={lang.code}
+                            type="button"
+                            onClick={() => setActiveTab(lang.code)}
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 text-sm font-medium rounded-lg transition-colors min-w-[120px] ${activeTab === lang.code
+                                ? "text-white bg-[#2d2d30] shadow-sm border border-[#3e3e42]"
+                                : "text-gray-400 hover:text-gray-300 hover:bg-[#2d2d30]/50 border border-transparent"
+                                }`}
+                        >
+                            <span>{lang.flag} {lang.label}</span>
+                            <div className={`w-1.5 h-1.5 rounded-full ${formData.translations[lang.code]?.title ? 'bg-[#10b981]' : 'bg-gray-600'}`}></div>
+                        </button>
+                    ))}
+                </div>
+                {/* Translated Button */}
+                <button
+                     type="button"
+                     className="flex items-center justify-center gap-2 whitespace-nowrap px-6 py-3.5 rounded-xl border border-[#3c64f4] bg-[#3c64f4]/10 text-[#3c64f4] hover:bg-[#3c64f4]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm"
+                     onClick={handleAutoTranslate}
+                     disabled={translating}
+                >
+                     {translating ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Languages className="w-5 h-5" />}
+                     {translating ? "Translating..." : "Auto Translate All"}
+                </button>
             </div>
 
             {/* Translation Specific Content */}
