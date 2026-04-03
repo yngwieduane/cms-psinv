@@ -6,7 +6,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import { useRouter, useParams } from "next/navigation";
 import RichTextEditor from "@/components/dashboard/RichTextEditor";
-import { Eye, Save, RefreshCw, Link as LinkIcon, Languages, X } from "lucide-react";
+import { Eye, Save, RefreshCw, Link as LinkIcon, Languages, X, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 
 interface Translation {
     title: string;
@@ -66,6 +66,11 @@ export default function ArticleEditorPage() {
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [activeTab, setActiveTab] = useState("en");
+
+    // AI States
+    const [isAiSectionOpen, setIsAiSectionOpen] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState("");
+    const [generatingAi, setGeneratingAi] = useState(false);
 
     const [formData, setFormData] = useState<ArticleData>({
         image: "",
@@ -221,6 +226,57 @@ export default function ArticleEditorPage() {
         return isUnique;
     };
 
+    const handleGenerateAi = async () => {
+        if (!aiPrompt.trim()) {
+            alert("Please enter a prompt first.");
+            return;
+        }
+
+        setGeneratingAi(true);
+        try {
+            const res = await fetch("/api/generate-blog", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt: aiPrompt })
+            });
+
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.error || "Failed to generate AI content");
+            }
+
+            setFormData(prev => {
+                const newTitle = data.title || prev.translations.en.title;
+                const newContent = data.contentHtml || prev.translations.en.content;
+                const newH2 = data.summary || prev.translations.en.h2;
+
+                const currentSlugified = slugify(prev.translations.en.title);
+                const newSlug = isNew && (prev.slug === currentSlugified || prev.slug === "") ? slugify(newTitle) : prev.slug;
+
+                return {
+                    ...prev,
+                    slug: newSlug,
+                    translations: {
+                        ...prev.translations,
+                        en: {
+                            ...prev.translations.en,
+                            title: newTitle,
+                            h2: newH2,
+                            content: newContent,
+                        }
+                    }
+                };
+            });
+            setActiveTab("en");
+        } catch (error: any) {
+            console.error("AI Generation error:", error);
+            alert(`Error: ${error.message}`);
+        } finally {
+            setGeneratingAi(false);
+        }
+    };
+
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -317,6 +373,56 @@ export default function ArticleEditorPage() {
                         {saving ? "Saving..." : "Save"}
                     </button>
                 </div>
+            </div>
+
+            {/* AI Generation Area */}
+            <div className="bg-[#212124] border border-[#2d2d30] rounded-xl shadow-sm overflow-hidden">
+                <button
+                    type="button"
+                    onClick={() => setIsAiSectionOpen(!isAiSectionOpen)}
+                    className="w-full flex items-center justify-between p-6 hover:bg-[#2d2d30]/50 transition-colors"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-[#3c64f4]/10 rounded-lg text-[#3c64f4]">
+                            <Sparkles className="w-5 h-5" />
+                        </div>
+                        <div className="text-left">
+                            <h2 className="text-xl font-bold text-white">
+                                AI Content Generator (English)
+                            </h2>
+                            <p className="text-sm text-gray-400 mt-1">Generate title, subtitle, and content automatically</p>
+                        </div>
+                    </div>
+                    <div className="text-gray-400">
+                        {isAiSectionOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                    </div>
+                </button>
+
+                {isAiSectionOpen && (
+                    <div className="px-6 pb-6 space-y-4 border-t border-[#2d2d30] pt-6">
+                        <div>
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Prompt</label>
+                            <textarea
+                                rows={3}
+                                className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                value={aiPrompt}
+                                onChange={(e) => setAiPrompt(e.target.value)}
+                                placeholder="e.g. Write an article about off-plan properties in Dubai..."
+                            />
+                        </div>
+                        <div className="flex justify-end">
+                            <button
+                                type="button"
+                                disabled={generatingAi}
+                                onClick={handleGenerateAi}
+                                className="flex items-center gap-2 px-6 py-2 rounded-lg bg-[#3c64f4] text-white hover:bg-[#2b4ac0] transition-colors disabled:opacity-50 text-sm font-medium shadow-[0_0_15px_rgba(60,100,244,0.3)]"
+                            >
+                                {generatingAi ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                {generatingAi ? "Generating..." : "Generate with AI"}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Language Tabs */}
