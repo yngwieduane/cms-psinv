@@ -49,11 +49,14 @@ export default function BlogEditorPage() {
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-    
+
     // AI States
     const [isAiSectionOpen, setIsAiSectionOpen] = useState(false);
     const [aiPrompt, setAiPrompt] = useState("");
     const [generatingAi, setGeneratingAi] = useState(false);
+
+    // Preview
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
     const categoryRef = useRef<HTMLDivElement>(null);
 
@@ -212,7 +215,7 @@ export default function BlogEditorPage() {
             });
 
             const data = await res.json();
-            
+
             if (!res.ok) {
                 throw new Error(data.error || "Failed to generate AI content");
             }
@@ -220,7 +223,7 @@ export default function BlogEditorPage() {
             setFormData(prev => {
                 const newTitle = data.title || prev.title;
                 const newSlug = isNew ? slugify(newTitle) : prev.slug;
-                
+
                 return {
                     ...prev,
                     title: newTitle,
@@ -258,7 +261,7 @@ export default function BlogEditorPage() {
 
             await setDoc(doc(db, "blog_posts", docId), postData, { merge: true });
 
-            router.push("/dashboard/blog");
+            router.push(`/dashboard/blog/${formData.slug}`);
         } catch (error) {
             console.error("Error saving post:", error);
             alert("Failed to save post");
@@ -269,6 +272,7 @@ export default function BlogEditorPage() {
 
     if (loading) return <div className="p-6 text-gray-400">Loading editor...</div>;
 
+    const previewUrl = formData.slug ? `https://www.psinv.net/en/blog/${formData.slug}` : "";
     const currentTitle = formData.title || (isNew ? "New Blog Post" : "Edit Blog Post");
 
     return (
@@ -293,23 +297,21 @@ export default function BlogEditorPage() {
                     >
                         Cancel
                     </button>
-                    <a
-                        href={formData.slug ? `https://www.psinv.net/en/blog/${formData.slug}` : "#"}
-                        target={formData.slug ? "_blank" : "_self"}
-                        rel="noopener noreferrer"
+                    <button
+                        type="button"
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg border border-[#3c64f4] text-[#3c64f4] transition-colors text-sm font-medium ${!formData.slug
                             ? 'opacity-50 cursor-not-allowed'
                             : 'hover:bg-[#3c64f4]/10'
                             }`}
-                        onClick={(e) => {
-                            if (!formData.slug) {
-                                e.preventDefault();
+                        onClick={() => {
+                            if (formData.slug) {
+                                setIsPreviewOpen(true);
                             }
                         }}
                     >
                         <Eye className="w-4 h-4" />
                         Preview
-                    </a>
+                    </button>
                     <button
                         type="submit"
                         disabled={saving || uploading}
@@ -594,6 +596,40 @@ export default function BlogEditorPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Live Preview Drawer */}
+            {isPreviewOpen && (
+                <div className="fixed inset-0 z-[100] flex justify-end bg-black/50 backdrop-blur-[2px] transition-opacity">
+                    <div className="w-full md:w-[85%] max-w-5xl h-full bg-[#1c1c1f] shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-0">
+                        <div className="flex items-center justify-between p-4 border-b border-[#2d2d30] bg-[#212124]">
+                            <div className="flex items-center gap-3">
+                                <Eye className="w-5 h-5 text-[#3c64f4]" />
+                                <div>
+                                    <h2 className="text-sm font-bold text-white leading-tight">Live Preview</h2>
+                                    <a href={previewUrl} target="_blank" rel="noreferrer" className="text-xs text-gray-400 hover:text-[#3c64f4] transition-colors flex items-center gap-1">
+                                        Open in new tab <LinkIcon className="w-3 h-3" />
+                                    </a>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsPreviewOpen(false)}
+                                className="p-2 hover:bg-[#3e3e42] rounded-lg text-gray-400 hover:text-white transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="flex-1 bg-white relative">
+                            {/* Loading skeleton for iframe if needed, but standard is fine */}
+                            <iframe 
+                                src={previewUrl} 
+                                className="w-full h-full border-none"
+                                title="Live Preview"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </form>
     );
 }

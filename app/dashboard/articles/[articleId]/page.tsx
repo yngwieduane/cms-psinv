@@ -73,6 +73,9 @@ export default function ArticleEditorPage() {
     const [generatingAi, setGeneratingAi] = useState(false);
     const [translating, setTranslating] = useState(false);
 
+    // Preview
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
     const [formData, setFormData] = useState<ArticleData>({
         image: "",
         gallery: [],
@@ -242,7 +245,7 @@ export default function ArticleEditorPage() {
             });
 
             const data = await res.json();
-            
+
             if (!res.ok) {
                 throw new Error(data.error || "Failed to generate AI content");
             }
@@ -301,14 +304,14 @@ export default function ArticleEditorPage() {
             });
 
             const data = await res.json();
-            
+
             if (!res.ok) {
                 throw new Error(data.error || "Failed to automate translations");
             }
 
             setFormData(prev => {
                 const newTranslations = { ...prev.translations };
-                
+
                 Object.keys(data).forEach(langCode => {
                     newTranslations[langCode] = {
                         ...newTranslations[langCode],
@@ -318,13 +321,13 @@ export default function ArticleEditorPage() {
                         content: data[langCode].content || newTranslations[langCode]?.content || "",
                     };
                 });
-                
+
                 return {
                     ...prev,
                     translations: newTranslations
                 };
             });
-            
+
             alert("Translations completed successfully!");
         } catch (error: any) {
             console.error("Translation error:", error);
@@ -369,7 +372,7 @@ export default function ArticleEditorPage() {
                     await setDoc(doc(db, "articles", articleId), articleData, { merge: true });
                 }
             }
-            router.push("/dashboard/articles");
+            router.push(`/dashboard/articles/${formData.slug}`);
         } catch (error) {
             console.error("Error saving article:", error);
             alert("Failed to save article");
@@ -381,6 +384,7 @@ export default function ArticleEditorPage() {
     if (loading) return <div className="p-6 text-gray-400">Loading editor...</div>;
 
     const currentTitle = formData.translations.en.title || (isNew ? "New Article" : "Edit Article");
+    const previewUrl = (formData.slug && formData.category) ? `https://www.psinv.net/en/articles/${slugify(formData.category)}${slugify(formData.category) === 'area-guide' && formData.city ? `/${slugify(formData.city)}` : ""}/${formData.slug}` : "";
 
     return (
         <form onSubmit={handleSave} className="p-6 max-w-6xl mx-auto space-y-8">
@@ -404,23 +408,21 @@ export default function ArticleEditorPage() {
                     >
                         Cancel
                     </button>
-                    <a
-                        href={formData.slug && formData.category ? `https://www.psinv.net/en/articles/${slugify(formData.category)}${slugify(formData.category) === 'area-guide' && formData.city ? `/${slugify(formData.city)}` : ""}/${formData.slug}` : "#"}
-                        target={formData.slug && formData.category ? "_blank" : "_self"}
-                        rel="noopener noreferrer"
+                    <button
+                        type="button"
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg border border-[#3c64f4] text-[#3c64f4] transition-colors text-sm font-medium ${!(formData.slug && formData.category)
                             ? 'opacity-50 cursor-not-allowed'
                             : 'hover:bg-[#3c64f4]/10'
                             }`}
-                        onClick={(e) => {
-                            if (!(formData.slug && formData.category)) {
-                                e.preventDefault();
+                        onClick={() => {
+                            if (formData.slug && formData.category) {
+                                setIsPreviewOpen(true);
                             }
                         }}
                     >
                         <Eye className="w-4 h-4" />
                         Preview
-                    </a>
+                    </button>
                     <button
                         type="submit"
                         disabled={saving || uploading}
@@ -502,13 +504,13 @@ export default function ArticleEditorPage() {
                 </div>
                 {/* Translated Button */}
                 <button
-                     type="button"
-                     className="flex items-center justify-center gap-2 whitespace-nowrap px-6 py-3.5 rounded-xl border border-[#3c64f4] bg-[#3c64f4]/10 text-[#3c64f4] hover:bg-[#3c64f4]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm"
-                     onClick={handleAutoTranslate}
-                     disabled={translating}
+                    type="button"
+                    className="flex items-center justify-center gap-2 whitespace-nowrap px-6 py-3.5 rounded-xl border border-[#3c64f4] bg-[#3c64f4]/10 text-[#3c64f4] hover:bg-[#3c64f4]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm"
+                    onClick={handleAutoTranslate}
+                    disabled={translating}
                 >
-                     {translating ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Languages className="w-5 h-5" />}
-                     {translating ? "Translating..." : "Auto Translate All"}
+                    {translating ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Languages className="w-5 h-5" />}
+                    {translating ? "Translating..." : "Auto Translate All"}
                 </button>
             </div>
 
@@ -741,6 +743,40 @@ export default function ArticleEditorPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Live Preview Drawer */}
+            {isPreviewOpen && (
+                <div className="fixed inset-0 z-[100] flex justify-end bg-black/50 backdrop-blur-[2px] transition-opacity">
+                    <div className="w-full md:w-[85%] max-w-5xl h-full bg-[#1c1c1f] shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-0">
+                        <div className="flex items-center justify-between p-4 border-b border-[#2d2d30] bg-[#212124]">
+                            <div className="flex items-center gap-3">
+                                <Eye className="w-5 h-5 text-[#3c64f4]" />
+                                <div>
+                                    <h2 className="text-sm font-bold text-white leading-tight">Live Preview</h2>
+                                    <a href={previewUrl} target="_blank" rel="noreferrer" className="text-xs text-gray-400 hover:text-[#3c64f4] transition-colors flex items-center gap-1">
+                                        Open in new tab <LinkIcon className="w-3 h-3" />
+                                    </a>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsPreviewOpen(false)}
+                                className="p-2 hover:bg-[#3e3e42] rounded-lg text-gray-400 hover:text-white transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="flex-1 bg-white relative">
+                            {/* Loading skeleton for iframe if needed, but standard is fine */}
+                            <iframe 
+                                src={previewUrl} 
+                                className="w-full h-full border-none"
+                                title="Live Preview"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </form>
     );
 }
