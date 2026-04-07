@@ -9,6 +9,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 export default function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean, setIsCollapsed: (val: boolean) => void }) {
     const pathname = usePathname();
     const [userRole, setUserRole] = useState<string | null>(null);
+    const [isHovered, setIsHovered] = useState(false);
+
+    const effectivelyCollapsed = isCollapsed && !isHovered;
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -59,13 +62,17 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: 
     }
 
     return (
-        <aside className={`fixed inset-y-0 left-0 z-10 bg-[#232326] border-r border-[#2d2d30] hidden md:flex md:flex-col shadow-xl transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
+        <aside
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className={`fixed inset-y-0 left-0 z-10 bg-[#232326] border-r border-[#2d2d30] hidden md:flex md:flex-col shadow-xl transition-all duration-300 z-100 ${effectivelyCollapsed ? 'w-20' : 'w-64'}`}
+        >
             <div className="flex items-center justify-center h-16 border-b border-[#2d2d30] bg-[#1c1c1f]">
                 <div className="flex items-center justify-center w-full px-4 gap-3">
                     <div className="flex items-center justify-center w-8 h-8 bg-[#3c64f4] rounded-lg text-white font-bold text-lg shrink-0">
                         P
                     </div>
-                    {!isCollapsed && <span className="text-xl font-bold text-white tracking-wider whitespace-nowrap overflow-hidden transition-all duration-300">CMS ADMIN</span>}
+                    {!effectivelyCollapsed && <span className="text-xl font-bold text-white tracking-wider whitespace-nowrap overflow-hidden transition-all duration-300">CMS ADMIN</span>}
                 </div>
             </div>
             <div className="flex-1 overflow-y-auto py-4">
@@ -76,8 +83,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: 
                             <Link
                                 key={item.name}
                                 href={item.href}
-                                title={isCollapsed ? item.name : undefined}
-                                className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-4'} py-3 text-sm font-medium rounded-lg transition-all duration-200 group border ${isActive
+                                title={effectivelyCollapsed ? item.name : undefined}
+                                className={`flex items-center ${effectivelyCollapsed ? 'justify-center px-0' : 'px-4'} py-3 text-sm font-medium rounded-lg transition-all duration-200 group border ${isActive
                                     ? "bg-[#28324a] text-[#3c64f4] border-[#303f5e]"
                                     : "border-transparent text-gray-400 hover:bg-[#2d2d30]/50 hover:text-gray-200"
                                     }`}
@@ -85,7 +92,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: 
                                 <div className={`flex-shrink-0 ${isActive ? "text-[#3c64f4]" : "text-gray-500 group-hover:text-gray-400"}`}>
                                     {item.icon}
                                 </div>
-                                {!isCollapsed && <span className="ml-3 whitespace-nowrap overflow-hidden">{item.name}</span>}
+                                {!effectivelyCollapsed && <span className="ml-3 whitespace-nowrap overflow-hidden">{item.name}</span>}
                             </Link>
                         );
                     })}
@@ -94,17 +101,17 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: 
             <div className="p-4 border-t border-[#2d2d30] flex flex-col gap-2">
                 <button
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-4'} py-3 text-sm font-medium text-gray-400 rounded-lg hover:bg-[#2d2d30]/50 hover:text-gray-200 transition-colors cursor-pointer border border-transparent w-full`}
-                    title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                    className={`flex items-center ${effectivelyCollapsed ? 'justify-center px-0' : 'px-4'} py-3 text-sm font-medium text-gray-400 rounded-lg hover:bg-[#2d2d30]/50 hover:text-gray-200 transition-colors cursor-pointer border border-transparent w-full`}
+                    title={effectivelyCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
                 >
                     <div className="flex-shrink-0">
-                        {isCollapsed ? <ChevronRight className="w-5 h-5 text-gray-500" /> : <ChevronLeft className="w-5 h-5 text-gray-500" />}
+                        {effectivelyCollapsed ? <ChevronRight className="w-5 h-5 text-gray-500" /> : <ChevronLeft className="w-5 h-5 text-gray-500" />}
                     </div>
-                    {!isCollapsed && <span className="ml-3 whitespace-nowrap overflow-hidden">Collapse</span>}
+                    {!effectivelyCollapsed && <span className="ml-3 whitespace-nowrap overflow-hidden">Collapse</span>}
                 </button>
-                <div className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-4'} py-3 text-sm font-medium text-gray-400 rounded-lg hover:bg-[#2d2d30]/50 hover:text-gray-200 transition-colors cursor-pointer border border-transparent`} title={isCollapsed ? "Help & Support" : undefined}>
+                <div className={`hidden flex items-center ${effectivelyCollapsed ? 'justify-center px-0' : 'px-4'} py-3 text-sm font-medium text-gray-400 rounded-lg hover:bg-[#2d2d30]/50 hover:text-gray-200 transition-colors cursor-pointer border border-transparent`} title={effectivelyCollapsed ? "Help & Support" : undefined}>
                     <svg className="w-5 h-5 flex-shrink-0 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    {!isCollapsed && <span className="ml-3 whitespace-nowrap overflow-hidden">Help & Support</span>}
+                    {!effectivelyCollapsed && <span className="ml-3 whitespace-nowrap overflow-hidden">Help & Support</span>}
                 </div>
             </div>
         </aside>
