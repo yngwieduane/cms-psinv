@@ -5,7 +5,21 @@ import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import { useRouter, useParams } from "next/navigation";
-import { Eye, Save, X, Image as ImageIcon, Video as VideoIcon, LayoutTemplate } from "lucide-react";
+import { Eye, Save, X, Image as ImageIcon, Video as VideoIcon, LayoutTemplate, RefreshCw, Languages, ChevronDown, ChevronUp } from "lucide-react";
+
+const LANGUAGES = [
+    { code: "en", label: "English", flag: "🇬🇧" },
+    { code: "ar", label: "العربية", flag: "🇦🇪" },
+    { code: "zh", label: "中文", flag: "🇨🇳" },
+    { code: "ru", label: "Русский", flag: "🇷🇺" },
+    { code: "nl", label: "Dutch", flag: "🇳🇱" },
+];
+
+interface Translation {
+    title: string;
+    subTitle: string;
+    shortDescription: string;
+}
 
 interface BannerData {
     id: string;
@@ -30,6 +44,9 @@ interface BannerData {
     bedroom?: string;
     createdAt?: any;
     updatedAt?: any;
+    translations: {
+        [key: string]: Translation;
+    };
 }
 
 export default function BannerEditorPage() {
@@ -46,6 +63,10 @@ export default function BannerEditorPage() {
     const [uploadingVideo, setUploadingVideo] = useState(false);
     const [uploadingIcon, setUploadingIcon] = useState(false);
     const [uploadingIconMobile, setUploadingIconMobile] = useState(false);
+
+    const [activeTab, setActiveTab] = useState("en");
+    const [translating, setTranslating] = useState(false);
+    const [isTranslationsOpen, setIsTranslationsOpen] = useState(true);
 
     const [formData, setFormData] = useState<BannerData>({
         id: "",
@@ -68,6 +89,13 @@ export default function BannerEditorPage() {
         countryId: "",
         unitType: "",
         bedroom: "",
+        translations: {
+            en: { title: "", subTitle: "", shortDescription: "" },
+            ar: { title: "", subTitle: "", shortDescription: "" },
+            zh: { title: "", subTitle: "", shortDescription: "" },
+            ru: { title: "", subTitle: "", shortDescription: "" },
+            nl: { title: "", subTitle: "", shortDescription: "" },
+        },
     });
 
     useEffect(() => {
@@ -82,9 +110,25 @@ export default function BannerEditorPage() {
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 const data = docSnap.data() as BannerData;
-                setFormData({
-                    ...data,
-                    id: docId
+                setFormData((prev) => {
+                    const loadedTranslations = data.translations || {};
+                    // Ensure English translation includes existing base content if available
+                    const enTranslation = {
+                        title: loadedTranslations.en?.title || data.title || "",
+                        subTitle: loadedTranslations.en?.subTitle || data.subTitle || "",
+                        shortDescription: loadedTranslations.en?.shortDescription || data.shortDescription || "",
+                    };
+
+                    return {
+                        ...prev,
+                        ...data,
+                        id: docId,
+                        translations: {
+                            ...prev.translations,
+                            ...loadedTranslations,
+                            en: enTranslation
+                        },
+                    };
                 });
             } else {
                 alert("Banner not found");
@@ -144,17 +188,92 @@ export default function BannerEditorPage() {
             .replace(/\-\-+/g, '-');
     };
 
-    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const title = e.target.value;
-        const newId = slugify(title);
 
-        setFormData(prev => {
-            const updates: Partial<BannerData> = { title };
-            if (isNew && (!prev.id || prev.id === slugify(prev.title))) {
-                updates.id = newId;
+    const handleTranslationChange = (
+        field: keyof Translation,
+        value: string
+    ) => {
+        setFormData((prev) => {
+            const newState = {
+                ...prev,
+                translations: {
+                    ...prev.translations,
+                    [activeTab]: {
+                        ...prev.translations[activeTab],
+                        [field]: value,
+                    },
+                },
+            };
+
+            // Sync English translations with base fields
+            if (activeTab === 'en') {
+                if (field === 'title') {
+                    newState.title = value;
+                    // Update ID if it's new and syncs with title
+                    if (isNew && (!prev.id || prev.id === slugify(prev.title))) {
+                        newState.id = slugify(value);
+                    }
+                }
+                if (field === 'subTitle') newState.subTitle = value;
+                if (field === 'shortDescription') newState.shortDescription = value;
             }
-            return { ...prev, ...updates };
+
+            return newState;
         });
+    };
+
+    const handleAutoTranslate = async () => {
+        const enData = formData.translations.en;
+        if (!enData || !enData.title) {
+            alert("Please ensure English Title exists before translating.");
+            return;
+        }
+
+        setTranslating(true);
+        try {
+            const targetLanguages = LANGUAGES.filter(l => l.code !== 'en').map(l => ({ code: l.code, name: l.label }));
+            const res = await fetch("/api/translate-banner", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title: enData.title,
+                    subTitle: enData.subTitle,
+                    shortDescription: enData.shortDescription,
+                    targetLanguages
+                })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || "Failed to automate translations");
+            }
+
+            setFormData(prev => {
+                const newTranslations = { ...prev.translations };
+
+                Object.keys(data).forEach(langCode => {
+                    newTranslations[langCode] = {
+                        ...newTranslations[langCode],
+                        title: data[langCode].title || newTranslations[langCode]?.title || "",
+                        subTitle: data[langCode].subTitle || newTranslations[langCode]?.subTitle || "",
+                        shortDescription: data[langCode].shortDescription || newTranslations[langCode]?.shortDescription || "",
+                    };
+                });
+
+                return {
+                    ...prev,
+                    translations: newTranslations
+                };
+            });
+
+            alert("Translations completed successfully!");
+        } catch (error: any) {
+            console.error("Translation error:", error);
+            alert(`Error: ${error.message}`);
+        } finally {
+            setTranslating(false);
+        }
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -196,7 +315,7 @@ export default function BannerEditorPage() {
             // Save the document
             await setDoc(doc(db, "banners", docId), payloadData, { merge: true });
 
-            router.push("/dashboard/banners");
+            router.push(`/dashboard/banners/${formData.id}`);
         } catch (error) {
             console.error("Error saving banner:", error);
             alert("Failed to save banner");
@@ -244,37 +363,106 @@ export default function BannerEditorPage() {
                 </div>
             </div>
 
+            {/* Language Tabs & Auto-Translate */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="bg-[#212124] border border-[#2d2d30] rounded-xl flex items-center overflow-x-auto p-1.5 flex-1">
+                    {LANGUAGES.map((lang) => (
+                        <button
+                            key={lang.code}
+                            type="button"
+                            onClick={() => setActiveTab(lang.code)}
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 text-sm font-medium rounded-lg transition-colors min-w-[120px] ${activeTab === lang.code
+                                ? "text-white bg-[#2d2d30] shadow-sm border border-[#3e3e42]"
+                                : "text-gray-400 hover:text-gray-300 hover:bg-[#2d2d30]/50 border border-transparent"
+                                }`}
+                        >
+                            <span>{lang.flag} {lang.label}</span>
+                            <div className={`w-1.5 h-1.5 rounded-full ${formData.translations[lang.code]?.title ? 'bg-[#10b981]' : 'bg-gray-600'}`}></div>
+                        </button>
+                    ))}
+                </div>
+                {/* Translated Button */}
+                <button
+                    type="button"
+                    className="flex items-center justify-center gap-2 whitespace-nowrap px-6 py-3.5 rounded-xl border border-[#3c64f4] bg-[#3c64f4]/10 text-[#3c64f4] hover:bg-[#3c64f4]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm"
+                    onClick={handleAutoTranslate}
+                    disabled={translating}
+                >
+                    {translating ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Languages className="w-5 h-5" />}
+                    {translating ? "Translating..." : "Auto Translate All"}
+                </button>
+            </div>
+
+            {/* Translation Specific Content */}
+            <div className="bg-[#212124] border border-[#2d2d30] rounded-xl p-8 shadow-sm">
+                <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        {LANGUAGES.find(l => l.code === activeTab)?.flag} Content ({activeTab.toUpperCase()})
+                    </h2>
+                </div>
+
+                <div className="space-y-6">
+                    <div>
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                            Title
+                        </label>
+                        <input
+                            type="text"
+                            required={activeTab === "en"}
+                            className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                            value={formData.translations[activeTab]?.title || ""}
+                            onChange={(e) => handleTranslationChange("title", e.target.value)}
+                            placeholder="e.g. Find Your Dream Home"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                            Sub Title
+                        </label>
+                        <input
+                            type="text"
+                            className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                            value={formData.translations[activeTab]?.subTitle || ""}
+                            onChange={(e) => handleTranslationChange("subTitle", e.target.value)}
+                            placeholder="e.g. Exclusive Properties"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                            Short Description
+                        </label>
+                        <textarea
+                            className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors min-h-[120px]"
+                            value={formData.translations[activeTab]?.shortDescription || ""}
+                            onChange={(e) => handleTranslationChange("shortDescription", e.target.value)}
+                            placeholder="Brief overview text for the banner..."
+                        />
+                    </div>
+                </div>
+            </div>
+
             {/* Main Content split into 2 columns */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                {/* Left Column: Text & Content Details */}
+                {/* Left Column: Configuration & Details */}
                 <div className="lg:col-span-2 space-y-8">
                     <div className="bg-[#212124] border border-[#2d2d30] rounded-xl p-8 shadow-sm">
-                        <h2 className="text-xl font-bold text-white mb-8">Base Information</h2>
+                        <h2 className="text-xl font-bold text-white mb-8">Base Configuration</h2>
 
                         <div className="space-y-6">
-                            {/* Title & Document ID */}
+                            {/* Document ID & City Focus */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Main Title</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
-                                        value={formData.title}
-                                        onChange={handleTitleChange}
-                                        placeholder="e.g. Find Your Dream Home"
-                                    />
-                                </div>
-                                <div>
                                     <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center justify-between">
-                                        <span>Document ID</span>
+                                        <span>Document ID / Slug</span>
                                         {isNew && <span className="text-[#3c64f4] capitalize tracking-normal font-normal text-xs">Auto-generated</span>}
                                     </label>
                                     <input
                                         type="text"
                                         required
-                                        disabled={!isNew} // Lock ID if not new to prevent orphaned docs unless explicitly handled via delete/create
+                                        disabled={!isNew}
                                         className={`w-full border rounded-lg px-4 py-3 text-sm font-mono transition-colors ${isNew
                                             ? "bg-[#1c1c1f] border-[#3e3e42] text-gray-400 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4]"
                                             : "bg-[#1c1c1f]/50 border-[#3e3e42]/50 text-gray-500 cursor-not-allowed"
@@ -284,21 +472,6 @@ export default function BannerEditorPage() {
                                     />
                                     {!isNew && <p className="text-xs text-gray-600 mt-1">ID cannot be changed after creation.</p>}
                                 </div>
-                            </div>
-
-                            {/* Subtitle */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Sub Title</label>
-                                    <input
-                                        type="text"
-                                        className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
-                                        value={formData.subTitle}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, subTitle: e.target.value }))}
-                                        placeholder="e.g. Exclusive Properties"
-                                    />
-                                </div>
-                                {/* City */}
                                 <div>
                                     <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">City Focus</label>
                                     <select
@@ -326,17 +499,6 @@ export default function BannerEditorPage() {
                                     value={formData.landingPageUrl}
                                     onChange={(e) => setFormData(prev => ({ ...prev, landingPageUrl: e.target.value }))}
                                     placeholder="e.g. /properties/dubai or https://example.com"
-                                />
-                            </div>
-
-                            {/* Short Description */}
-                            <div>
-                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Short Description</label>
-                                <textarea
-                                    className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors min-h-[120px]"
-                                    value={formData.shortDescription}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, shortDescription: e.target.value }))}
-                                    placeholder="Brief overview text for the banner..."
                                 />
                             </div>
                         </div>
