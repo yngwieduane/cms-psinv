@@ -30,6 +30,13 @@ interface DynamicField {
     required: boolean;
 }
 
+interface UTMIntegration {
+    id: string;
+    utmCampaign: string;
+    campaignId: string;
+    remarks: string;
+}
+
 interface RegistrationData {
     id: string;
     title: string;
@@ -55,6 +62,7 @@ interface RegistrationData {
     updatedAt?: any;
     remarks?: string;
     campaignId?: string;
+    utmIntegrations?: UTMIntegration[];
     dynamicFields?: DynamicField[];
     translations: {
         [key: string]: Translation;
@@ -103,6 +111,7 @@ export default function RegistrationEditorPage() {
         bedroom: "",
         remarks: "",
         campaignId: "",
+        utmIntegrations: [],
         dynamicFields: [],
         translations: {
             en: { title: "", subTitle: "", shortDescription: "" },
@@ -136,6 +145,7 @@ export default function RegistrationEditorPage() {
                     const dynamicFields = data.dynamicFields || [];
                     const remarks = data.remarks || "";
                     const campaignId = data.campaignId || "";
+                    const utmIntegrations = data.utmIntegrations || [];
 
                     return {
                         ...prev,
@@ -143,6 +153,7 @@ export default function RegistrationEditorPage() {
                         id: docId,
                         remarks,
                         campaignId,
+                        utmIntegrations,
                         dynamicFields: dynamicFields,
                         translations: {
                             ...prev.translations,
@@ -637,6 +648,89 @@ export default function RegistrationEditorPage() {
                                     onChange={(e) => setFormData(prev => ({ ...prev, campaignId: e.target.value }))}
                                     placeholder="e.g. CAMP-2026"
                                 />
+                            </div>
+                        </div>
+
+                        <div className="mt-8 border-t border-[#3e3e42] pt-8">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-lg font-bold text-white">UTM Campaign Grouping</h3>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({
+                                        ...prev,
+                                        utmIntegrations: [...(prev.utmIntegrations || []), { id: Date.now().toString(), utmCampaign: '', campaignId: '', remarks: '' }]
+                                    }))}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#3c64f4]/10 text-[#3c64f4] hover:bg-[#3c64f4]/20 transition-colors text-sm font-medium border border-[#3c64f4]/20"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Add Campaign Override
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {(!formData.utmIntegrations || formData.utmIntegrations.length === 0) ? (
+                                    <p className="text-sm text-gray-500 text-center py-4 border border-dashed border-[#3e3e42] rounded-lg">No UTM campaigns added. Default integration settings will be used.</p>
+                                ) : (
+                                    formData.utmIntegrations.map((utm, index) => (
+                                        <div key={utm.id} className="p-4 bg-[#1c1c1f] border border-[#3e3e42] rounded-lg relative group">
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({
+                                                    ...prev,
+                                                    utmIntegrations: prev.utmIntegrations?.filter(u => u.id !== utm.id)
+                                                }))}
+                                                className="absolute top-3 right-3 p-1.5 text-gray-500 hover:text-red-400 bg-[#2d2d30] rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div>
+                                                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">UTM Campaign Match</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        className="w-full bg-[#2d2d30] border border-[#3e3e42] rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4]"
+                                                        value={utm.utmCampaign}
+                                                        onChange={(e) => {
+                                                            const newUtms = [...(formData.utmIntegrations || [])];
+                                                            newUtms[index].utmCampaign = e.target.value;
+                                                            setFormData(prev => ({ ...prev, utmIntegrations: newUtms }));
+                                                        }}
+                                                        placeholder="e.g. summer_sale"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Campaign ID Override</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full bg-[#2d2d30] border border-[#3e3e42] rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4]"
+                                                        value={utm.campaignId}
+                                                        onChange={(e) => {
+                                                            const newUtms = [...(formData.utmIntegrations || [])];
+                                                            newUtms[index].campaignId = e.target.value;
+                                                            setFormData(prev => ({ ...prev, utmIntegrations: newUtms }));
+                                                        }}
+                                                        placeholder="e.g. CAMP-123"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Remarks Override</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full bg-[#2d2d30] border border-[#3e3e42] rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4]"
+                                                        value={utm.remarks}
+                                                        onChange={(e) => {
+                                                            const newUtms = [...(formData.utmIntegrations || [])];
+                                                            newUtms[index].remarks = e.target.value;
+                                                            setFormData(prev => ({ ...prev, utmIntegrations: newUtms }));
+                                                        }}
+                                                        placeholder="Specific remarks"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
                     </div>
