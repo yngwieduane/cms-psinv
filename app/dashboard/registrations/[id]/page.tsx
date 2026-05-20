@@ -19,6 +19,7 @@ interface Translation {
     title: string;
     subTitle: string;
     shortDescription: string;
+    imageRegistrationUrl?: string;
 }
 
 interface DynamicField {
@@ -35,6 +36,8 @@ interface UTMIntegration {
     utmCampaign: string;
     campaignId: string;
     remarks: string;
+    brightcallEnId?: string;
+    brightcallArId?: string;
 }
 
 interface RegistrationData {
@@ -83,6 +86,7 @@ export default function RegistrationEditorPage() {
     const [uploadingVideo, setUploadingVideo] = useState(false);
     const [uploadingIcon, setUploadingIcon] = useState(false);
     const [uploadingIconMobile, setUploadingIconMobile] = useState(false);
+    const [uploadingTranslationImage, setUploadingTranslationImage] = useState(false);
 
     const [activeTab, setActiveTab] = useState("en");
     const [translating, setTranslating] = useState(false);
@@ -207,6 +211,38 @@ export default function RegistrationEditorPage() {
             if (type === 'video') setUploadingVideo(false);
             if (type === 'icon') setUploadingIcon(false);
             if (type === 'iconMobile') setUploadingIconMobile(false);
+        }
+    };
+
+    const handleTranslationMediaUpload = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+        langCode: string
+    ) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploadingTranslationImage(true);
+
+        try {
+            const storageRef = ref(storage, `registrations/translations/${langCode}_${Date.now()}_${file.name}`);
+            const snapshot = await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(snapshot.ref);
+
+            setFormData(prev => ({
+                ...prev,
+                translations: {
+                    ...prev.translations,
+                    [langCode]: {
+                        ...prev.translations[langCode],
+                        imageRegistrationUrl: downloadURL
+                    }
+                }
+            }));
+        } catch (error) {
+            console.error(`Error uploading translation image:`, error);
+            alert(`Failed to upload image.`);
+        } finally {
+            setUploadingTranslationImage(false);
         }
     };
 
@@ -359,7 +395,7 @@ export default function RegistrationEditorPage() {
     if (loading) return <div className="p-6 text-gray-400">Loading editor...</div>;
 
     const currentTitle = formData.title || (isNew ? "New Registration" : "Edit Registration");
-    const isUploadingAny = uploadingImage || uploadingVideo || uploadingIcon || uploadingIconMobile;
+    const isUploadingAny = uploadingImage || uploadingVideo || uploadingIcon || uploadingIconMobile || uploadingTranslationImage;
 
     return (
         <form onSubmit={handleSave} className="p-6 max-w-6xl mx-auto space-y-8">
@@ -471,6 +507,59 @@ export default function RegistrationEditorPage() {
                             onChange={(e) => handleTranslationChange("shortDescription", e.target.value)}
                             placeholder="Brief overview text for the registration..."
                         />
+                    </div>
+
+                    <div>
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                            Language Specific Image
+                        </label>
+                        <div className="p-6 border-2 border-dashed border-[#3e3e42] rounded-xl bg-[#1c1c1f] hover:bg-[#2d2d30]/50 transition-colors relative group">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleTranslationMediaUpload(e, activeTab)}
+                                disabled={uploadingTranslationImage}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                            />
+                            <div className="flex flex-col items-center justify-center gap-3">
+                                <div className="p-3 bg-[#2d2d30] rounded-full text-[#3c64f4] group-hover:scale-110 transition-transform">
+                                    <ImageIcon className="w-6 h-6" />
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-sm font-medium text-white mb-1">
+                                        {uploadingTranslationImage ? "Uploading..." : "Click or drag image to upload"}
+                                    </p>
+                                    <p className="text-xs text-gray-500">Overrides global image for {LANGUAGES.find(l => l.code === activeTab)?.label}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {formData.translations[activeTab]?.imageRegistrationUrl && (
+                            <div className="mt-4 relative group rounded-lg overflow-hidden border border-[#3e3e42] bg-[#1c1c1f]">
+                                <img
+                                    src={formData.translations[activeTab].imageRegistrationUrl}
+                                    alt={`${activeTab} registration preview`}
+                                    className="w-full h-40 object-cover"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            translations: {
+                                                ...prev.translations,
+                                                [activeTab]: {
+                                                    ...prev.translations[activeTab],
+                                                    imageRegistrationUrl: ""
+                                                }
+                                            }
+                                        }));
+                                    }}
+                                    className="absolute top-2 right-2 p-1.5 bg-red-500/80 hover:bg-red-500 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -658,7 +747,7 @@ export default function RegistrationEditorPage() {
                                     type="button"
                                     onClick={() => setFormData(prev => ({
                                         ...prev,
-                                        utmIntegrations: [...(prev.utmIntegrations || []), { id: Date.now().toString(), utmCampaign: '', campaignId: '', remarks: '' }]
+                                        utmIntegrations: [...(prev.utmIntegrations || []), { id: Date.now().toString(), utmCampaign: '', campaignId: '', remarks: '', brightcallEnId: '', brightcallArId: '' }]
                                     }))}
                                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#3c64f4]/10 text-[#3c64f4] hover:bg-[#3c64f4]/20 transition-colors text-sm font-medium border border-[#3c64f4]/20"
                                 >
@@ -683,7 +772,7 @@ export default function RegistrationEditorPage() {
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 <div>
                                                     <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">UTM Campaign Match</label>
                                                     <input
@@ -725,6 +814,34 @@ export default function RegistrationEditorPage() {
                                                             setFormData(prev => ({ ...prev, utmIntegrations: newUtms }));
                                                         }}
                                                         placeholder="Specific remarks"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Brightcall EN ID</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full bg-[#2d2d30] border border-[#3e3e42] rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4]"
+                                                        value={utm.brightcallEnId || ''}
+                                                        onChange={(e) => {
+                                                            const newUtms = [...(formData.utmIntegrations || [])];
+                                                            newUtms[index].brightcallEnId = e.target.value;
+                                                            setFormData(prev => ({ ...prev, utmIntegrations: newUtms }));
+                                                        }}
+                                                        placeholder="e.g. BC-EN-123"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Brightcall AR ID</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full bg-[#2d2d30] border border-[#3e3e42] rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4]"
+                                                        value={utm.brightcallArId || ''}
+                                                        onChange={(e) => {
+                                                            const newUtms = [...(formData.utmIntegrations || [])];
+                                                            newUtms[index].brightcallArId = e.target.value;
+                                                            setFormData(prev => ({ ...prev, utmIntegrations: newUtms }));
+                                                        }}
+                                                        placeholder="e.g. BC-AR-123"
                                                     />
                                                 </div>
                                             </div>
