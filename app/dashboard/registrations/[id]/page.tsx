@@ -38,6 +38,8 @@ interface UTMIntegration {
     remarks: string;
     brightcallEnId?: string;
     brightcallArId?: string;
+    mediaType?: string;
+    mediaName?: string;
 }
 
 interface RegistrationData {
@@ -65,6 +67,8 @@ interface RegistrationData {
     updatedAt?: any;
     remarks?: string;
     campaignId?: string;
+    mediaType?: string;
+    mediaName?: string;
     utmIntegrations?: UTMIntegration[];
     dynamicFields?: DynamicField[];
     translations: {
@@ -115,6 +119,8 @@ export default function RegistrationEditorPage() {
         bedroom: "",
         remarks: "",
         campaignId: "",
+        mediaType: "",
+        mediaName: "",
         utmIntegrations: [],
         dynamicFields: [],
         translations: {
@@ -149,6 +155,8 @@ export default function RegistrationEditorPage() {
                     const dynamicFields = data.dynamicFields || [];
                     const remarks = data.remarks || "";
                     const campaignId = data.campaignId || "";
+                    const mediaType = data.mediaType || "";
+                    const mediaName = data.mediaName || "";
                     const utmIntegrations = data.utmIntegrations || [];
 
                     return {
@@ -157,6 +165,8 @@ export default function RegistrationEditorPage() {
                         id: docId,
                         remarks,
                         campaignId,
+                        mediaType,
+                        mediaName,
                         utmIntegrations,
                         dynamicFields: dynamicFields,
                         translations: {
@@ -738,6 +748,26 @@ export default function RegistrationEditorPage() {
                                     placeholder="e.g. CAMP-2026"
                                 />
                             </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Media Type ID</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                    value={formData.mediaType || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, mediaType: e.target.value }))}
+                                    placeholder="e.g. Social, Search"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Media Name ID</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                    value={formData.mediaName || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, mediaName: e.target.value }))}
+                                    placeholder="e.g. Facebook, Google"
+                                />
+                            </div>
                         </div>
 
                         <div className="mt-8 border-t border-[#3e3e42] pt-8">
@@ -747,7 +777,7 @@ export default function RegistrationEditorPage() {
                                     type="button"
                                     onClick={() => setFormData(prev => ({
                                         ...prev,
-                                        utmIntegrations: [...(prev.utmIntegrations || []), { id: Date.now().toString(), utmCampaign: '', campaignId: '', remarks: '', brightcallEnId: '', brightcallArId: '' }]
+                                        utmIntegrations: [...(prev.utmIntegrations || []), { id: Date.now().toString(), utmCampaign: '', campaignId: '', remarks: '', brightcallEnId: '', brightcallArId: '', mediaType: '', mediaName: '' }]
                                     }))}
                                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#3c64f4]/10 text-[#3c64f4] hover:bg-[#3c64f4]/20 transition-colors text-sm font-medium border border-[#3c64f4]/20"
                                 >
@@ -842,6 +872,34 @@ export default function RegistrationEditorPage() {
                                                             setFormData(prev => ({ ...prev, utmIntegrations: newUtms }));
                                                         }}
                                                         placeholder="e.g. BC-AR-123"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Media Type Override</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full bg-[#2d2d30] border border-[#3e3e42] rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4]"
+                                                        value={utm.mediaType || ''}
+                                                        onChange={(e) => {
+                                                            const newUtms = [...(formData.utmIntegrations || [])];
+                                                            newUtms[index].mediaType = e.target.value;
+                                                            setFormData(prev => ({ ...prev, utmIntegrations: newUtms }));
+                                                        }}
+                                                        placeholder="Override media type"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Media Name Override</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full bg-[#2d2d30] border border-[#3e3e42] rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4]"
+                                                        value={utm.mediaName || ''}
+                                                        onChange={(e) => {
+                                                            const newUtms = [...(formData.utmIntegrations || [])];
+                                                            newUtms[index].mediaName = e.target.value;
+                                                            setFormData(prev => ({ ...prev, utmIntegrations: newUtms }));
+                                                        }}
+                                                        placeholder="Override media name"
                                                     />
                                                 </div>
                                             </div>
