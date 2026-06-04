@@ -148,6 +148,7 @@ export default function RegistrationEditorPage() {
                     const loadedTranslations = data.translations || {};
                     // Ensure English translation includes existing base content if available
                     const enTranslation = {
+                        ...loadedTranslations.en,
                         title: loadedTranslations.en?.title || data.title || "",
                         subTitle: loadedTranslations.en?.subTitle || data.subTitle || "",
                         shortDescription: loadedTranslations.en?.shortDescription || data.shortDescription || "",
@@ -523,32 +524,12 @@ export default function RegistrationEditorPage() {
                         <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
                             Language Specific Image
                         </label>
-                        <div className="p-6 border-2 border-dashed border-[#3e3e42] rounded-xl bg-[#1c1c1f] hover:bg-[#2d2d30]/50 transition-colors relative group">
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handleTranslationMediaUpload(e, activeTab)}
-                                disabled={uploadingTranslationImage}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
-                            />
-                            <div className="flex flex-col items-center justify-center gap-3">
-                                <div className="p-3 bg-[#2d2d30] rounded-full text-[#3c64f4] group-hover:scale-110 transition-transform">
-                                    <ImageIcon className="w-6 h-6" />
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-sm font-medium text-white mb-1">
-                                        {uploadingTranslationImage ? "Uploading..." : "Click or drag image to upload"}
-                                    </p>
-                                    <p className="text-xs text-gray-500">Overrides global image for {LANGUAGES.find(l => l.code === activeTab)?.label}</p>
-                                </div>
-                            </div>
-                        </div>
-                        {formData.translations[activeTab]?.imageRegistrationUrl && (
-                            <div className="mt-4 relative group rounded-lg overflow-hidden border border-[#3e3e42] bg-[#1c1c1f]">
+                        {formData.translations[activeTab]?.imageRegistrationUrl ? (
+                            <div className="relative group mb-3 rounded-xl overflow-hidden border border-[#3e3e42] bg-[#1c1c1f]">
                                 <img
                                     src={formData.translations[activeTab].imageRegistrationUrl}
                                     alt={`${activeTab} registration preview`}
-                                    className="w-full h-40 object-cover"
+                                    className="w-full h-40 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
                                 />
                                 <button
                                     type="button"
@@ -564,11 +545,39 @@ export default function RegistrationEditorPage() {
                                             }
                                         }));
                                     }}
-                                    className="absolute top-2 right-2 p-1.5 bg-red-500/80 hover:bg-red-500 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
+                        ) : (
+                            <div className="p-6 border-2 border-dashed border-[#3e3e42] rounded-xl bg-[#1c1c1f] hover:bg-[#2d2d30]/50 transition-colors relative group mb-3">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => handleTranslationMediaUpload(e, activeTab)}
+                                    disabled={uploadingTranslationImage}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                                />
+                                <div className="flex flex-col items-center justify-center gap-3">
+                                    <div className="p-3 bg-[#2d2d30] rounded-full text-[#3c64f4] group-hover:scale-110 transition-transform">
+                                        <ImageIcon className="w-6 h-6" />
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-sm font-medium text-white mb-1">
+                                            {uploadingTranslationImage ? "Uploading..." : "Click or drag image to upload"}
+                                        </p>
+                                        <p className="text-xs text-gray-500">Overrides global image for {LANGUAGES.find(l => l.code === activeTab)?.label}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        {formData.translations[activeTab]?.imageRegistrationUrl && (
+                            <label className="cursor-pointer flex items-center justify-center w-full px-4 py-2 bg-[#2d2d30] border border-[#3e3e42] rounded-lg text-sm font-medium text-gray-200 hover:bg-[#3e3e42] transition-colors relative overflow-hidden">
+                                <span className={uploadingTranslationImage ? 'opacity-0' : 'opacity-100 transition-opacity'}>Replace Image</span>
+                                {uploadingTranslationImage && <span className="absolute text-[#3c64f4]">Uploading...</span>}
+                                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleTranslationMediaUpload(e, activeTab)} disabled={uploadingTranslationImage} />
+                            </label>
                         )}
                     </div>
                 </div>
