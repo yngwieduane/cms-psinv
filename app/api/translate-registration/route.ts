@@ -13,7 +13,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'GEMINI_API_KEY is not set.' }, { status: 500 });
     }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const referer = request.headers.get('referer');
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      httpOptions: referer ? {
+        headers: {
+          'Referer': referer
+        }
+      } : undefined
+    });
 
     // Assuming targetLanguages is an array of objects like { code: "ar", name: "Arabic" }
     const languagesString = targetLanguages.map((l: any) => `${l.name} (${l.code})`).join(', ');

@@ -13,7 +13,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'GEMINI_API_KEY is not set in environment variables.' }, { status: 500 });
     }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const referer = request.headers.get('referer');
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      httpOptions: referer ? {
+        headers: {
+          'Referer': referer
+        }
+      } : undefined
+    });
 
     const systemInstruction = `You are an expert real estate blog content generator. 
 Your task is to generate a blog post based on the user's prompt. 
