@@ -33,6 +33,9 @@ interface BlogPostData {
     imageUrl: string;
     gallery?: string[];
     youtubeUrl?: string;
+    facebookReelUrl?: string;
+    instagramEmbedUrl?: string;
+    tiktokEmbedUrl?: string;
     lastSyncedAt: any;
     slug: string; // Document ID
     summary: string;
@@ -80,6 +83,9 @@ export default function BlogEditorPage() {
         imageUrl: "",
         gallery: [],
         youtubeUrl: "",
+        facebookReelUrl: "",
+        instagramEmbedUrl: "",
+        tiktokEmbedUrl: "",
         lastSyncedAt: null,
         slug: "",
         summary: "",
@@ -102,6 +108,9 @@ export default function BlogEditorPage() {
                     ...data,
                     gallery: data.gallery || [],
                     youtubeUrl: data.youtubeUrl || "",
+                    facebookReelUrl: data.facebookReelUrl || "",
+                    instagramEmbedUrl: data.instagramEmbedUrl || "",
+                    tiktokEmbedUrl: data.tiktokEmbedUrl || "",
                 });
             } else {
                 alert("Post not found");
@@ -550,6 +559,51 @@ export default function BlogEditorPage() {
                             value={formData.youtubeUrl || ""}
                             onChange={(e) => setFormData({ ...formData, youtubeUrl: e.target.value })}
                         />
+                    </div>
+
+                    {/* Social Media Embeds */}
+                    <div className="pt-6 border-t border-[#3e3e42]">
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-4">
+                            Social Media Embeds
+                        </label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                    Facebook Reel URL
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="https://www.facebook.com/reel/..."
+                                    className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                    value={formData.facebookReelUrl || ""}
+                                    onChange={(e) => setFormData({ ...formData, facebookReelUrl: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                    Instagram Embed URL
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="https://www.instagram.com/p/..."
+                                    className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                    value={formData.instagramEmbedUrl || ""}
+                                    onChange={(e) => setFormData({ ...formData, instagramEmbedUrl: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                    TikTok Embed URL
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="https://www.tiktok.com/@user/video/..."
+                                    className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                    value={formData.tiktokEmbedUrl || ""}
+                                    onChange={(e) => setFormData({ ...formData, tiktokEmbedUrl: e.target.value })}
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     {/* Gallery Images */}
