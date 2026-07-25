@@ -5,6 +5,16 @@ import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/aut
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 
+const ALLOWED_EMAILS = [
+    "ydgb0714@gmail.com",
+    "yngwie.g@psinv.net",
+    "neemapssree123@gmail.com",
+    "anoopigeorge@gmail.com",
+    "salasnoviclyn@gmail.com",
+    "athiraasm@gmail.com",
+    "leihdyako@gmail.com",
+];
+
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -17,6 +27,12 @@ export default function LoginPage() {
         e.preventDefault();
         setError(null);
         setMessage(null);
+
+        if (!ALLOWED_EMAILS.includes(email.trim().toLowerCase())) {
+            setError("Access denied. This email is not authorized to access the dashboard.");
+            return;
+        }
+
         try {
             await signInWithEmailAndPassword(auth, email, password);
             router.push("/dashboard");

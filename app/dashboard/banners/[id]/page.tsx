@@ -29,6 +29,7 @@ interface BannerData {
     imageBannerUrl: string;
     videoBannerUrl: string;
     featured: boolean;
+    status: "Live" | "Draft";
     landingPageUrl: string;
     iconUrl: string;
     iconUrlMobile: string;
@@ -76,6 +77,7 @@ export default function BannerEditorPage() {
         imageBannerUrl: "",
         videoBannerUrl: "",
         featured: false,
+        status: "Draft",
         landingPageUrl: "",
         iconUrl: "",
         iconUrlMobile: "",
@@ -123,6 +125,7 @@ export default function BannerEditorPage() {
                         ...prev,
                         ...data,
                         id: docId,
+                        status: data.status || "Draft",
                         translations: {
                             ...prev.translations,
                             ...loadedTranslations,
@@ -609,20 +612,45 @@ export default function BannerEditorPage() {
                     {/* Settings Block */}
                     <div className="bg-[#212124] border border-[#2d2d30] rounded-xl p-8 shadow-sm">
                         <h2 className="text-xl font-bold text-white mb-6">Settings</h2>
-                        <div className="flex items-center justify-between p-4 bg-[#1c1c1f] border border-[#3e3e42] rounded-lg">
-                            <div>
-                                <h3 className="text-sm font-semibold text-gray-200 mb-1">Featured Banner</h3>
-                                <p className="text-xs text-gray-500 max-w-[200px]">Set this banner as the primary active banner on the site.</p>
+                        <div className="space-y-3">
+                            {/* Status — Live / Draft */}
+                            <div className="flex items-center justify-between p-4 bg-[#1c1c1f] border border-[#3e3e42] rounded-lg">
+                                <div>
+                                    <h3 className="text-sm font-semibold text-gray-200 mb-1">Status</h3>
+                                    <p className="text-xs text-gray-500 max-w-[200px]">Live banners are shown on the website. Draft banners are hidden.</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className={`text-xs font-semibold ${formData.status === "Live" ? "text-[#10b981]" : "text-gray-500"}`}>
+                                        {formData.status}
+                                    </span>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={formData.status === "Live"}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.checked ? "Live" : "Draft" }))}
+                                        />
+                                        <div className="w-11 h-6 bg-[#2d2d30] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#3c64f4] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#10b981]"></div>
+                                    </label>
+                                </div>
                             </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    className="sr-only peer"
-                                    checked={formData.featured}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, featured: e.target.checked }))}
-                                />
-                                <div className="w-11 h-6 bg-[#2d2d30] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#3c64f4] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#10b981]"></div>
-                            </label>
+
+                            {/* Featured Banner */}
+                            <div className="flex items-center justify-between p-4 bg-[#1c1c1f] border border-[#3e3e42] rounded-lg">
+                                <div>
+                                    <h3 className="text-sm font-semibold text-gray-200 mb-1">Featured Banner</h3>
+                                    <p className="text-xs text-gray-500 max-w-[200px]">Set this banner as the primary active banner on the site.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={formData.featured}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, featured: e.target.checked }))}
+                                    />
+                                    <div className="w-11 h-6 bg-[#2d2d30] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#3c64f4] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#10b981]"></div>
+                                </label>
+                            </div>
                         </div>
                     </div>
 
