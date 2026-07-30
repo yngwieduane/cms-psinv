@@ -575,7 +575,7 @@ export default function ArticleEditorPage() {
                         <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
                             Rich Text Content
                         </label>
-                        <div className="border border-[#3e3e42] rounded-lg overflow-hidden [&_.ql-toolbar]:bg-[#2d2d30] [&_.ql-toolbar]:border-b-[#3e3e42] [&_.ql-container]:bg-[#1c1c1f] [&_.ql-container]:text-gray-200 [&_.ql-container]:border-none [&_.ql-editor]:min-h-[300px]">
+                        <div className="border border-[#3e3e42] rounded-lg overflow-hidden [&_.ql-toolbar]:bg-[#2d2d30] [&_.ql-toolbar]:border-b-[#3e3e42] [&_.ql-container]:bg-[#1c1c1f] [&_.ql-container]:text-gray-200 [&_.ql-container]:border-none">
                             <RichTextEditor
                                 key={activeTab}
                                 value={formData.translations[activeTab]?.content || ""}
@@ -817,8 +817,8 @@ export default function ArticleEditorPage() {
                         </div>
                         <div className="flex-1 bg-white relative">
                             {/* Loading skeleton for iframe if needed, but standard is fine */}
-                            <iframe 
-                                src={previewUrl} 
+                            <iframe
+                                src={previewUrl}
                                 className="w-full h-full border-none"
                                 title="Live Preview"
                             />

@@ -38,6 +38,7 @@ interface BlogPostData {
     tiktokEmbedUrl?: string;
     lastSyncedAt: any;
     slug: string; // Document ID
+    status: string;
     summary: string;
     title: string;
 }
@@ -88,6 +89,7 @@ export default function BlogEditorPage() {
         tiktokEmbedUrl: "",
         lastSyncedAt: null,
         slug: "",
+        status: "Draft",
         summary: "",
         title: "",
     });
@@ -111,6 +113,7 @@ export default function BlogEditorPage() {
                     facebookReelUrl: data.facebookReelUrl || "",
                     instagramEmbedUrl: data.instagramEmbedUrl || "",
                     tiktokEmbedUrl: data.tiktokEmbedUrl || "",
+                    status: data.status || "Draft",
                 });
             } else {
                 alert("Post not found");
@@ -414,8 +417,8 @@ export default function BlogEditorPage() {
                         </div>
                     </div>
 
-                    {/* Author & Date */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Author, Date & Status */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
                             <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Author</label>
                             <input
@@ -433,6 +436,17 @@ export default function BlogEditorPage() {
                                 value={formData.date}
                                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                             />
+                        </div>
+                        <div>
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Status</label>
+                            <select
+                                className="w-full bg-[#1c1c1f] border border-[#3e3e42] rounded-lg px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-[#3c64f4] focus:ring-1 focus:ring-[#3c64f4] transition-colors"
+                                value={formData.status}
+                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                            >
+                                <option value="Draft" className="bg-[#1c1c1f]">Draft</option>
+                                <option value="Published" className="bg-[#1c1c1f]">Published</option>
+                            </select>
                         </div>
                     </div>
 
@@ -499,7 +513,7 @@ export default function BlogEditorPage() {
                     {/* Rich Content HTML */}
                     <div>
                         <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Content HTML</label>
-                        <div className="border border-[#3e3e42] rounded-lg overflow-hidden [&_.ql-toolbar]:bg-[#2d2d30] [&_.ql-toolbar]:border-b-[#3e3e42] [&_.ql-container]:bg-[#1c1c1f] [&_.ql-container]:text-gray-200 [&_.ql-container]:border-none [&_.ql-editor]:min-h-[300px]">
+                        <div className="border border-[#3e3e42] rounded-lg overflow-hidden [&_.ql-toolbar]:bg-[#2d2d30] [&_.ql-toolbar]:border-b-[#3e3e42] [&_.ql-container]:bg-[#1c1c1f] [&_.ql-container]:text-gray-200 [&_.ql-container]:border-none ">
                             <RichTextEditor
                                 value={formData.contentHtml}
                                 onChange={(value: string) => setFormData(prev => ({ ...prev, contentHtml: value }))}
@@ -675,8 +689,8 @@ export default function BlogEditorPage() {
                         </div>
                         <div className="flex-1 bg-white relative">
                             {/* Loading skeleton for iframe if needed, but standard is fine */}
-                            <iframe 
-                                src={previewUrl} 
+                            <iframe
+                                src={previewUrl}
                                 className="w-full h-full border-none"
                                 title="Live Preview"
                             />
