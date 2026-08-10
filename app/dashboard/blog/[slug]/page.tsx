@@ -11,6 +11,7 @@ const BLOG_CATEGORIES = [
     "Abu Dhabi Real Estate",
     "Ras Al Khaimah Real Estate",
     "Sharjah Real Estate",
+    "Egypt Real Estate",
     "New Project Launch in Abu Dhabi",
     "New Project Launch in Dubai",
     "New Project Launch in Ras Al Khaimah",
